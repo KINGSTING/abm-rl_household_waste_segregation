@@ -1,0 +1,140 @@
+{
+  "total_households": 6110,
+  "total_barangays": 16,
+  "final_overall_compliance": 0.6136326396854006,
+  "simulation_steps": 100,
+  "final_policy": {
+    "incentive": 0,
+    "fine": 0
+  },
+  "barangay_summary": {
+    "Poblacion": {
+      "avg_income": 0.8041468817968543,
+      "avg_education": 0.7017076265644104,
+      "compliance_rate": 0.616695059625213,
+      "population": 587,
+      "income_std": 0.07955481349968654,
+      "education_std": 0.08739911984925836
+    },
+    "Babalayan Townsite": {
+      "avg_income": 0.6987658166284562,
+      "avg_education": 0.6048421509846744,
+      "compliance_rate": 0.6574468085106383,
+      "population": 470,
+      "income_std": 0.07994295858363411,
+      "education_std": 0.08580170388464456
+    },
+    "Liangan East": {
+      "avg_income": 0.6003729847668379,
+      "avg_education": 0.5035243010837507,
+      "compliance_rate": 0.6228710462287105,
+      "population": 411,
+      "income_std": 0.0807488307391014,
+      "education_std": 0.0872415642023693
+    },
+    "Punod (Maliwanag)": {
+      "avg_income": 0.6014836060211116,
+      "avg_education": 0.49960067880477793,
+      "compliance_rate": 0.6009732360097324,
+      "population": 411,
+      "income_std": 0.08254538862929174,
+      "education_std": 0.08599952639789114
+    },
+    "Mate": {
+      "avg_income": 0.4943143557201669,
+      "avg_education": 0.493687983724141,
+      "compliance_rate": 0.6193181818181818,
+      "population": 352,
+      "income_std": 0.08169747438045429,
+      "education_std": 0.08479908809981379
+    },
+    "Minaulon": {
+      "avg_income": 0.5026175458308667,
+      "avg_education": 0.5031552778035606,
+      "compliance_rate": 0.6193181818181818,
+      "population": 352,
+      "income_std": 0.08148524558239924,
+      "education_std": 0.08514604586729727
+    },
+    "Alegria": {
+      "avg_income": 0.38968652862510034,
+      "avg_education": 0.39342899442306895,
+      "compliance_rate": 0.6278409090909091,
+      "population": 352,
+      "income_std": 0.07924172081974798,
+      "education_std": 0.08530129813695861
+    },
+    "Babalaya": {
+      "avg_income": 0.4008172131545621,
+      "avg_education": 0.39888886546516794,
+      "compliance_rate": 0.6022727272727273,
+      "population": 352,
+      "income_std": 0.08086641975499395,
+      "education_std": 0.08698872645455391
+    },
+    "Binuni": {
+      "avg_income": 0.40005595823201784,
+      "avg_education": 0.39353974565138716,
+      "compliance_rate": 0.5880681818181818,
+      "population": 352,
+      "income_std": 0.08359604560328052,
+      "education_std": 0.08542451957639755
+    },
+    "Delabayan West": {
+      "avg_income": 0.39916768331386926,
+      "avg_education": 0.3979815281604575,
+      "compliance_rate": 0.59375,
+      "population": 352,
+      "income_std": 0.08329322987113927,
+      "education_std": 0.08690422123000767
+    },
+    "Demologan": {
+      "avg_income": 0.39538516103212323,
+      "avg_education": 0.4095286602083154,
+      "compliance_rate": 0.5767045454545454,
+      "population": 352,
+      "income_std": 0.08061177071716115,
+      "education_std": 0.08675224793286032
+    },
+    "Demarao": {
+      "avg_income": 0.40321305157489823,
+      "avg_education": 0.4000781293597402,
+      "compliance_rate": 0.6278409090909091,
+      "population": 352,
+      "income_std": 0.07930826291314881,
+      "education_std": 0.0852045210040802
+    },
+    "Esperanza": {
+      "avg_income": 0.400417344765593,
+      "avg_education": 0.3985343714090805,
+      "compliance_rate": 0.6164772727272727,
+      "population": 352,
+      "income_std": 0.08161037319456878,
+      "education_std": 0.08468583672309714
+    },
+    "Kahayag": {
+      "avg_income": 0.4007056122606661,
+      "avg_education": 0.39391965282113656,
+      "compliance_rate": 0.6051136363636364,
+      "population": 352,
+      "income_std": 0.08166316390542691,
+      "education_std": 0.08458188751942095
+    },
+    "Pagayawan": {
+      "avg_income": 0.3899860001536331,
+      "avg_education": 0.4010837808990129,
+      "compliance_rate": 0.6136363636363636,
+      "population": 352,
+      "income_std": 0.08052220608994212,
+      "education_std": 0.08425495807875161
+    },
+    "Rupagan": {
+      "avg_income": 0.4055508807851775,
+      "avg_education": 0.4011619576366968,
+      "compliance_rate": 0.6136363636363636,
+      "population": 352,
+      "income_std": 0.08049776307638015,
+      "education_std": 0.08608963912688383
+    }
+  }
+}

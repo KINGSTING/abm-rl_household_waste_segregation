@@ -1,0 +1,124 @@
+# Phase 1 ABM Configuration for Bacolod, Lanao del Norte - All 16 Barangays
+
+model:
+  total_households: 6,110 # Increased to accommodate 16 barangays
+  simulation_steps: 100
+  random_seed: 42
+
+barangays:
+  # Urban/Center Barangays (Higher income, education)
+  - name: "Poblacion"
+    type: "urban_center"
+    weight: 0.10
+    income_range: [0.7, 0.9]
+    education_range: [0.6, 0.8]
+
+  - name: "Babalayan Townsite"
+    type: "urban_center"
+    weight: 0.08
+    income_range: [0.6, 0.8]
+    education_range: [0.5, 0.7]
+
+  # Residential/Medium Barangays
+  - name: "Liangan East"
+    type: "residential"
+    weight: 0.07
+    income_range: [0.5, 0.7]
+    education_range: [0.4, 0.6]
+
+  - name: "Punod (Maliwanag)"
+    type: "residential"
+    weight: 0.07
+    income_range: [0.5, 0.7]
+    education_range: [0.4, 0.6]
+
+  - name: "Mate"
+    type: "residential"
+    weight: 0.06
+    income_range: [0.4, 0.6]
+    education_range: [0.4, 0.6]
+
+  - name: "Minaulon"
+    type: "residential"
+    weight: 0.06
+    income_range: [0.4, 0.6]
+    education_range: [0.4, 0.6]
+
+  # Rural/Coastal Barangays (Lower income, education)
+  - name: "Alegria"
+    type: "rural_coastal"
+    weight: 0.06
+    income_range: [0.3, 0.5]
+    education_range: [0.3, 0.5]
+
+  - name: "Babalaya"
+    type: "rural_coastal"
+    weight: 0.06
+    income_range: [0.3, 0.5]
+    education_range: [0.3, 0.5]
+
+  - name: "Binuni"
+    type: "rural_coastal"
+    weight: 0.06
+    income_range: [0.3, 0.5]
+    education_range: [0.3, 0.5]
+
+  - name: "Delabayan West"
+    type: "rural_coastal"
+    weight: 0.06
+    income_range: [0.3, 0.5]
+    education_range: [0.3, 0.5]
+
+  - name: "Demologan"
+    type: "rural_coastal"
+    weight: 0.06
+    income_range: [0.3, 0.5]
+    education_range: [0.3, 0.5]
+
+  - name: "Demarao"
+    type: "rural_coastal"
+    weight: 0.06
+    income_range: [0.3, 0.5]
+    education_range: [0.3, 0.5]
+
+  - name: "Esperanza"
+    type: "rural_coastal"
+    weight: 0.06
+    income_range: [0.3, 0.5]
+    education_range: [0.3, 0.5]
+
+  - name: "Kahayag"
+    type: "rural_coastal"
+    weight: 0.06
+    income_range: [0.3, 0.5]
+    education_range: [0.3, 0.5]
+
+  - name: "Pagayawan"
+    type: "rural_coastal"
+    weight: 0.06
+    income_range: [0.3, 0.5]
+    education_range: [0.3, 0.5]
+
+  - name: "Rupagan"
+    type: "rural_coastal"
+    weight: 0.06
+    income_range: [0.3, 0.5]
+    education_range: [0.3, 0.5]
+
+tpb_parameters:
+  attitude_weight: 0.35
+  subjective_norm_weight: 0.30
+  perceived_control_weight: 0.25
+  attitude_range: [0.3, 0.9]
+  subjective_norm_range: [0.2, 0.8]
+  perceived_control_range: [0.4, 0.95]
+
+economic_sensitivity:
+  base_incentive_sensitivity: 0.002
+  base_fine_sensitivity: 0.008
+  income_effect_on_sensitivity: true
+
+social_network:
+  min_neighbors: 5
+  max_neighbors: 15
+  same_barangay_probability: 0.8
