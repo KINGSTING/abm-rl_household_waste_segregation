@@ -50,11 +50,15 @@ class BacolodWasteModel(mesa.Model):
         print(f"✅ Model initialized with {len(self.households)} households across {len(self.barangays)} barangays")
 
     def initialize_barangays(self):
-        """Create the barangays of Bacolod, Lanao del Norte"""
+        """Create the hypothetical municipality with 9 barangays"""
         barangays = []
         for i, brgy_config in enumerate(self.config['barangays']):
             # Convert string type to Enum
-            brgy_type = BarangayType(brgy_config['type'])
+            try:
+                brgy_type = BarangayType(brgy_config['type'])
+            except ValueError:
+                print(f"Warning: Unknown barangay type {brgy_config['type']}. Using residential as default.")
+                brgy_type = BarangayType.RESIDENTIAL
 
             barangay = Barangay(
                 barangay_id=i,

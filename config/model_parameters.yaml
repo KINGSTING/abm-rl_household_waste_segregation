@@ -1,124 +1,65 @@
-# Phase 1 ABM Configuration for Bacolod, Lanao del Norte - All 16 Barangays
+# Phase 1 ABM Configuration - Urban Coastal Barangays Focus
+# Context: Municipality of Bacolod, Lanao del Norte (4th Income Class, 26.44% Poverty Incidence)
 
 model:
-  total_households: 6,110 # Increased to accommodate 16 barangays
-  simulation_steps: 100
+  total_households: 1000  # Increased for better resolution (16.4% of total LGU households)
+  simulation_steps: 365   # Increased for better RL convergence and long-term analysis
   random_seed: 42
 
+# Focused Barangay Selection - Normalized Population Weights (Based on 2020 Census)
 barangays:
-  # Urban/Center Barangays (Higher income, education)
-  - name: "Poblacion"
+  - name: "Poblacion Bacolod"
     type: "urban_center"
-    weight: 0.10
-    income_range: [0.7, 0.9]
-    education_range: [0.6, 0.8]
+    weight: 0.467         # 6,507 pop / 13,887 total
+    income_range: [0.65, 0.95]
+    education_range: [0.60, 0.90]
+    has_garbage_collection: true
 
-  - name: "Babalayan Townsite"
-    type: "urban_center"
-    weight: 0.08
-    income_range: [0.6, 0.8]
-    education_range: [0.5, 0.7]
-
-  # Residential/Medium Barangays
   - name: "Liangan East"
-    type: "residential"
-    weight: 0.07
-    income_range: [0.5, 0.7]
-    education_range: [0.4, 0.6]
-
-  - name: "Punod (Maliwanag)"
-    type: "residential"
-    weight: 0.07
-    income_range: [0.5, 0.7]
-    education_range: [0.4, 0.6]
-
-  - name: "Mate"
-    type: "residential"
-    weight: 0.06
-    income_range: [0.4, 0.6]
-    education_range: [0.4, 0.6]
-
-  - name: "Minaulon"
-    type: "residential"
-    weight: 0.06
-    income_range: [0.4, 0.6]
-    education_range: [0.4, 0.6]
-
-  # Rural/Coastal Barangays (Lower income, education)
-  - name: "Alegria"
-    type: "rural_coastal"
-    weight: 0.06
-    income_range: [0.3, 0.5]
-    education_range: [0.3, 0.5]
-
-  - name: "Babalaya"
-    type: "rural_coastal"
-    weight: 0.06
-    income_range: [0.3, 0.5]
-    education_range: [0.3, 0.5]
-
-  - name: "Binuni"
-    type: "rural_coastal"
-    weight: 0.06
-    income_range: [0.3, 0.5]
-    education_range: [0.3, 0.5]
-
-  - name: "Delabayan West"
-    type: "rural_coastal"
-    weight: 0.06
-    income_range: [0.3, 0.5]
-    education_range: [0.3, 0.5]
-
-  - name: "Demologan"
-    type: "rural_coastal"
-    weight: 0.06
-    income_range: [0.3, 0.5]
-    education_range: [0.3, 0.5]
-
-  - name: "Demarao"
-    type: "rural_coastal"
-    weight: 0.06
-    income_range: [0.3, 0.5]
-    education_range: [0.3, 0.5]
+    type: "urban_coastal"
+    weight: 0.154         # 2,139 pop
+    income_range: [0.50, 0.80]
+    education_range: [0.45, 0.70]
+    has_garbage_collection: true
 
   - name: "Esperanza"
-    type: "rural_coastal"
-    weight: 0.06
-    income_range: [0.3, 0.5]
-    education_range: [0.3, 0.5]
+    type: "urban_coastal"
+    weight: 0.194         # 2,698 pop
+    income_range: [0.40, 0.70]
+    education_range: [0.40, 0.65]
+    has_garbage_collection: true
 
-  - name: "Kahayag"
-    type: "rural_coastal"
-    weight: 0.06
-    income_range: [0.3, 0.5]
-    education_range: [0.3, 0.5]
+  - name: "Binuni"
+    type: "urban_coastal"
+    weight: 0.137         # 1,910 pop
+    income_range: [0.35, 0.60]
+    education_range: [0.30, 0.55]
+    has_garbage_collection: true
 
-  - name: "Pagayawan"
-    type: "rural_coastal"
-    weight: 0.06
-    income_range: [0.3, 0.5]
-    education_range: [0.3, 0.5]
-
-  - name: "Rupagan"
-    type: "rural_coastal"
-    weight: 0.06
-    income_range: [0.3, 0.5]
-    education_range: [0.3, 0.5]
+  - name: "Demologan"
+    type: "urban_coastal"
+    weight: 0.048         # 615 pop
+    income_range: [0.30, 0.50]
+    education_range: [0.25, 0.45]
+    has_garbage_collection: true
 
 tpb_parameters:
-  attitude_weight: 0.35
-  subjective_norm_weight: 0.30
-  perceived_control_weight: 0.25
+  # Adjusted to place higher emphasis on external factors (SN and PBC)
+  attitude_weight: 0.30
+  subjective_norm_weight: 0.35
+  perceived_control_weight: 0.30
+  # Note: 0.05 remaining is for the random utility component (epsilon)
   attitude_range: [0.3, 0.9]
   subjective_norm_range: [0.2, 0.8]
   perceived_control_range: [0.4, 0.95]
 
 economic_sensitivity:
-  base_incentive_sensitivity: 0.002
-  base_fine_sensitivity: 0.008
-  income_effect_on_sensitivity: true
+  # Increased fine sensitivity to reflect disutility of financial penalties in a low-income LGU
+  base_incentive_sensitivity: 0.005
+  base_fine_sensitivity: 0.012
+  income_effect_on_sensitivity: true # Higher income reduces fine sensitivity
 
 social_network:
   min_neighbors: 5
   max_neighbors: 15
-  same_barangay_probability: 0.8
+  same_barangay_probability: 0.90 # Increased probability for highly localized peer influence

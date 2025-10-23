@@ -66,10 +66,10 @@ def test_different_policies():
 
     for policy in policies:
         print(f"\nTesting: {policy['name']}")
-        model = BacolodWasteModel(total_households=6110)  # Smaller for quick testing
+        model = BacolodWasteModel(total_households=1200)  # Smaller for quick testing
         model.set_policy(incentive=policy['incentive'], fine=policy['fine'])
 
-        model_data, agent_data = model.run_simulation(steps=50)
+        model_data, agent_data = model.run_simulation(steps=100)
         final_compliance = model.calculate_overall_compliance()
 
         results.append({
