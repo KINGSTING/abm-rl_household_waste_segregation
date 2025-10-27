@@ -30,7 +30,7 @@ class BacolodWasteModel:
     This allows us to develop the RL environment logic independently.
     """
     def __init__(self, config: dict):
-        self.num_barangays = config.get('num_barangays', 5)
+        self.num_barangays = config.get('num_barangays', 7)
         self.num_households_per_barangay = config.get('num_households_per_barangay', 100)
         self.current_policies = np.zeros((self.num_barangays, 2))
         self.compliance_rates = np.zeros(self.num_barangays)

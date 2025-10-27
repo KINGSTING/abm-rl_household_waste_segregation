@@ -73,7 +73,7 @@ def train_rl_model(
     env_config = {
         'num_barangays': 5,  # A key parameter to match your data
         'abm_steps_per_rl_step': 90,  # 90 days (1 quarter)
-        'max_rl_steps': 20,  # 20 quarters (5 years)
+        'max_rl_steps': 5,  # 20 quarters (5 years)
         'compliance_weight': 1000.0,
         'cost_weight': 1.0,
         'info_cost_factor': 100.0,
