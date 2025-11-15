@@ -5,12 +5,13 @@
 ---
 
 ## 📘 Abstract
-
+<div align="justify">
 The persistent challenge of low household compliance with solid waste segregation mandates, as stipulated by the **Philippine Ecological Solid Waste Management Act (RA 9003)**, undermines the effectiveness of municipal solid waste management (MSWM). Local Government Units (LGUs) employ a mix of incentive and punitive policies, but their design often lacks a data-driven understanding of heterogeneous household behavior and long-term efficacy.
 
 This study proposes the development of an **integrated Agent-Based Model (ABM) and Reinforcement Learning (RL)** framework to identify the optimal policy mix for maximizing segregation compliance in a Philippine LGU. The ABM will simulate household decision-making by incorporating constructs from the **Theory of Planned Behavior** (Attitude, Subjective Norms, Perceived Behavioral Control), socio-demographic factors (income, education), and the economic utility of LGU policies (fines and incentives).
 
 The model will be parameterized and calibrated using **empirical data** from a household survey in a Northern Mindanao LGU. An RL algorithm will then be deployed to allow the LGU agent to autonomously discover the most cost-effective policy strategy—whether pure incentive, pure penalty, or a hybrid.
+</div>
 
 > 🧠 **Expected Outcome:**  
 > A validated computational tool and a set of data-driven recommendations on the optimal fine-to-incentive ratio, providing LGUs with an evidence-based method for policy design that improves compliance while optimizing the use of public funds.
