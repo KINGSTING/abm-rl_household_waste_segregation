@@ -1,70 +1,74 @@
 from mesa.visualization.modules import CanvasGrid, ChartModule
-from mesa.visualization.UserParam import Slider, NumberInput 
+from mesa.visualization.UserParam import Slider
 from mesa.visualization.ModularVisualization import ModularServer
 
 from model import WasteModel
 from agent import HouseholdAgent, BarangayOfficial, CollectionVehicle
 
 def agent_portrayal(agent):
+    """
+    Determines how agents are rendered on the grid.
+    """
     if isinstance(agent, HouseholdAgent):
         portrayal = {"Shape": "circle", "r": 0.8, "Filled": "true"}
         
-        if agent.improper_disposed:
-            portrayal["Color"] = "Black"
-            portrayal["Layer"] = 2
-        elif agent.is_compliant:
+        # Green = Compliant (Good Behavior)
+        if agent.is_compliant:
             portrayal["Color"] = "Green"
             portrayal["Layer"] = 0
+        # Red = Non-Compliant (Risk)
         else:
             portrayal["Color"] = "Red"
-            portrayal["Layer"] = 1
+            portrayal["Layer"] = 0
             
         return portrayal
 
     elif isinstance(agent, BarangayOfficial):
-        return {"Shape": "rect", "w": 0.5, "h": 0.5, "Color": "Blue", "Filled": "true", "Layer": 3}
+        # Blue Square = Enforcement/IEC Agent
+        # Layer 2 ensures it draws ON TOP of houses
+        return {"Shape": "rect", "w": 0.6, "h": 0.6, "Color": "Blue", "Filled": "true", "Layer": 2}
 
     elif isinstance(agent, CollectionVehicle):
-        return {"Shape": "circle", "r": 0.9, "Color": "Yellow", "Filled": "true", "Layer": 4}
+        # Yellow Circle = Garbage Truck
+        # Layer 3 ensures it draws ON TOP of everything
+        return {"Shape": "circle", "r": 0.9, "Color": "Yellow", "Filled": "true", "Layer": 3}
 
-# --- 1. Define the Visualization Grid ---
-# IMPORTANT: This must be large enough to fit your LARGEST Barangay config.
-# If Barangay 1 is 30x30, set this to 30. Smaller barangays will just look smaller on the canvas.
-MAX_GRID_WIDTH = 40
-MAX_GRID_HEIGHT = 40
-canvas_element = CanvasGrid(agent_portrayal, MAX_GRID_WIDTH, MAX_GRID_HEIGHT, 500, 500)
+# --- 1. Define Visual Settings ---
+# We define a fixed MAX size so the visualization doesn't break when switching Barangays.
+MAX_WIDTH = 50
+MAX_HEIGHT = 50
 
-# --- 2. Define the Charts ---
+# Create the Grid Visualization Element
+canvas_element = CanvasGrid(agent_portrayal, MAX_WIDTH, MAX_HEIGHT, 500, 500)
+
+# --- 2. Define Charts ---
+# Tracks the result of the TPB decisions over time
 chart_element = ChartModule([
     {"Label": "ComplianceRate", "Color": "Green"},
     {"Label": "ImproperDisposal", "Color": "Black"},
 ], data_collector_name='datacollector')
 
-# --- 3. Define the Interactive Parameters ---
+# --- 3. Define Interactive Parameters ---
 model_params = {
-    # --- THE SELECTOR ---
-    # This Slider allows you to switch between Barangay 1, 2, 3...
-    # When you change this and click 'Reset', the model reloads with that Barangay's config.
+    # The Selector: Switches between the 7 different scenarios in barangay_config.py
     "BARANGAY_ID": Slider("Select Barangay Scenario", 1, 1, 7, 1),
 
-    # --- Policy Levers (Global) ---
-    "FINE_EFFICACY": Slider("Fine Efficacy", 0.3, 0.0, 1.0, 0.1),
-    "INCENTIVE_EFFICACY": Slider("Incentive Efficacy", 0.1, 0.0, 1.0, 0.1),
-    "IEC_INTENSITY": Slider("IEC Intensity", 0.2, 0.0, 1.0, 0.1),
+    # --- TPB Policy Levers ---
+    # These sliders allow you to test your Thesis Interventions in real-time
+    "FINE_EFFICACY": Slider("Fine Efficacy (Social Norms)", 0.3, 0.0, 1.0, 0.1),
+    "INCENTIVE_EFFICACY": Slider("Incentive Efficacy (Threshold)", 0.1, 0.0, 1.0, 0.1),
+    "IEC_INTENSITY": Slider("IEC Intensity (Attitude)", 0.2, 0.0, 1.0, 0.1),
     
-    # --- REMOVED: N_HOUSEHOLDS, N_OFFICIALS, etc. ---
-    # These are now determined automatically by the BARANGAY_ID in model.py
-    
-    # Fixed Grid Size (Required by ModularServer, but model uses its own config)
-    "width": MAX_GRID_WIDTH,
-    "height": MAX_GRID_HEIGHT,
+    # Required Fixed Dimensions for the Server
+    "width": MAX_WIDTH,
+    "height": MAX_HEIGHT,
 }
 
 # --- 4. Launch the Server ---
 server = ModularServer(
     WasteModel, 
     [canvas_element, chart_element], 
-    "ABM Waste Policy: Barangay Selector Mode", 
+    "Waste Policy ABM (Theory of Planned Behavior)", 
     model_params
 )
 
