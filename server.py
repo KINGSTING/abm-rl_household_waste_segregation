@@ -1,75 +1,80 @@
-from mesa.visualization.modules import CanvasGrid, ChartModule
-from mesa.visualization.UserParam import Slider
+import mesa
+from mesa.visualization.modules import CanvasGrid, ChartModule, TextElement
 from mesa.visualization.ModularVisualization import ModularServer
 
-from model import WasteModel
-from agent import HouseholdAgent, BarangayOfficial, CollectionVehicle
+# Import your model and agents
+from bacolod_model import BacolodModel
+from household_agent import HouseholdAgent
+from enforcement_agent import EnforcementAgent
+from barangay_agent import BarangayAgent
 
+# --- 1. Define How Agents Look ---
 def agent_portrayal(agent):
     """
-    Determines how agents are rendered on the grid.
+    Determines the color, shape, and size of agents on the grid.
     """
+    if agent is None:
+        return
+
+    portrayal = {}
+
+    # --- Household Agents ---
     if isinstance(agent, HouseholdAgent):
-        portrayal = {"Shape": "circle", "r": 0.8, "Filled": "true"}
+        portrayal["Shape"] = "circle"
+        portrayal["Filled"] = "true"
+        portrayal["r"] = 0.5
+        portrayal["Layer"] = 0
         
-        # Green = Compliant (Good Behavior)
+        # Color Logic: Green if Compliant, Red if Non-Compliant
         if agent.is_compliant:
-            portrayal["Color"] = "Green"
-            portrayal["Layer"] = 0
-        # Red = Non-Compliant (Risk)
+            portrayal["Color"] = "green"
+            portrayal["r"] = 0.4 # Slightly smaller for neatness
         else:
-            portrayal["Color"] = "Red"
-            portrayal["Layer"] = 0
-            
-        return portrayal
+            portrayal["Color"] = "red"
+            # If they have improperly disposed garbage (Black state), make them darker
+            if agent.improper_disposed:
+                portrayal["Color"] = "black"
 
-    elif isinstance(agent, BarangayOfficial):
-        # Blue Square = Enforcement/IEC Agent
-        # Layer 2 ensures it draws ON TOP of houses
-        return {"Shape": "rect", "w": 0.6, "h": 0.6, "Color": "Blue", "Filled": "true", "Layer": 2}
+        # Optional: Tooltip to see details when hovering
+        portrayal["text"] = f"U:{agent.utility:.2f}"
+        portrayal["text_color"] = "white"
 
-    elif isinstance(agent, CollectionVehicle):
-        # Yellow Circle = Garbage Truck
-        # Layer 3 ensures it draws ON TOP of everything
-        return {"Shape": "circle", "r": 0.9, "Color": "Yellow", "Filled": "true", "Layer": 3}
+    # --- Enforcement Agents ---
+    elif isinstance(agent, EnforcementAgent):
+        portrayal["Shape"] = "rect"
+        portrayal["Filled"] = "true"
+        portrayal["w"] = 0.8
+        portrayal["h"] = 0.8
+        portrayal["Layer"] = 1 # Draw on top of households
+        portrayal["Color"] = "blue"
+        portrayal["text"] = "POLICE"
+        portrayal["text_color"] = "white"
 
-# --- 1. Define Visual Settings ---
-# We define a fixed MAX size so the visualization doesn't break when switching Barangays.
-MAX_WIDTH = 50
-MAX_HEIGHT = 50
+    return portrayal
 
-# Create the Grid Visualization Element
-canvas_element = CanvasGrid(agent_portrayal, MAX_WIDTH, MAX_HEIGHT, 500, 500)
+# --- 2. Setup the Visualization Elements ---
 
-# --- 2. Define Charts ---
-# Tracks the result of the TPB decisions over time
-chart_element = ChartModule([
-    {"Label": "ComplianceRate", "Color": "Green"},
-    {"Label": "ImproperDisposal", "Color": "Black"},
+# The Grid: 50x50 size, 500x500 pixels on screen
+grid = CanvasGrid(agent_portrayal, 50, 50, 500, 500)
+
+# The Chart: Tracks "Average Compliance" over time
+chart = ChartModule([
+    {"Label": "Average Compliance", "Color": "Green"}
 ], data_collector_name='datacollector')
 
-# --- 3. Define Interactive Parameters ---
-model_params = {
-    # The Selector: Switches between the 7 different scenarios in barangay_config.py
-    "BARANGAY_ID": Slider("Select Barangay Scenario", 1, 1, 7, 1),
-
-    # --- TPB Policy Levers ---
-    # These sliders allow you to test your Thesis Interventions in real-time
-    "FINE_EFFICACY": Slider("Fine Efficacy (Social Norms)", 0.3, 0.0, 1.0, 0.1),
-    "INCENTIVE_EFFICACY": Slider("Incentive Efficacy (Threshold)", 0.1, 0.0, 1.0, 0.1),
-    "IEC_INTENSITY": Slider("IEC Intensity (Attitude)", 0.2, 0.0, 1.0, 0.1),
-    
-    # Required Fixed Dimensions for the Server
-    "width": MAX_WIDTH,
-    "height": MAX_HEIGHT,
-}
-
-# --- 4. Launch the Server ---
+# --- 3. Launch the Server ---
 server = ModularServer(
-    WasteModel, 
-    [canvas_element, chart_element], 
-    "Waste Policy ABM (Theory of Planned Behavior)", 
-    model_params
+    BacolodModel,
+    [grid, chart],
+    "Bacolod Waste Segregation Model",
+    # Model parameters user can change in the browser:
+    {
+        "num_households": mesa.visualization.UserSettableParameter(
+            "slider", "Number of Households", 200, 50, 500, 10
+        ),
+        "width": 50,
+        "height": 50
+    }
 )
 
-server.launch(port=8521)
+server.port = 8521 # The default Mesa port
