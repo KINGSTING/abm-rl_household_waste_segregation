@@ -3,10 +3,10 @@ from mesa.visualization.modules import CanvasGrid, ChartModule, TextElement
 from mesa.visualization.ModularVisualization import ModularServer
 
 # Import your model and agents
-from bacolod_model import BacolodModel
-from household_agent import HouseholdAgent
-from enforcement_agent import EnforcementAgent
-from barangay_agent import BarangayAgent
+from agents.bacolod_model import BacolodModel
+from agents.household_agent import HouseholdAgent
+from agents.enforcement_agent import EnforcementAgent
+from agents.barangay_agent import BarangayAgent
 
 # --- 1. Define How Agents Look ---
 def agent_portrayal(agent):

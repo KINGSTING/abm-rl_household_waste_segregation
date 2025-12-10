@@ -5,8 +5,9 @@ from mesa.datacollection import DataCollector
 import numpy as np
 
 # Import your agents
-from household_agent import HouseholdAgent
-from barangay_agent import BarangayAgent, EnforcementAgent
+from .household_agent import HouseholdAgent
+from .barangay_agent import BarangayAgent
+from .enforcement_agent import EnforcementAgent
 
 class BacolodModel(mesa.Model):
     """

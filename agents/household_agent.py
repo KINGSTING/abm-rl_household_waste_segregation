@@ -39,12 +39,12 @@ class HouseholdAgent(mesa.Agent):
         self.attitude = max(0.1, self.attitude * 0.99)
 
         # 2. IEC Boost (diminishing returns)
-        if self.model.iec_budget > 0:
-            boost = np.log1p(self.model.iec_budget) * 0.05
+        if self.barangay.iec_budget > 0:
+            boost = np.log1p(self.barangay.iec_budget) * 0.05
             self.attitude = min(1.0, self.attitude + boost)
 
         # 3. Psychological Reactance (Pushback if enforcement is oppressive)
-        if self.model.enforcement_intensity > 0.8:
+        if self.barangay.enforcement_intensity > 0.8:
             self.attitude = max(0.0, self.attitude - 0.05)
 
     def update_social_norms(self):
