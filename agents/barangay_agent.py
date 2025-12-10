@@ -1,6 +1,6 @@
 import mesa
 import math
-from household_agent import HouseholdAgent
+from agents.household_agent import HouseholdAgent
 
 class BarangayAgent(mesa.Agent):
     """
