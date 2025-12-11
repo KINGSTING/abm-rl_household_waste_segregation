@@ -82,7 +82,7 @@ class HouseholdAgent(mesa.Agent):
 
     def calculate_utility(self):
         """
-        Equation 2.2: U = TPB_Score - C_Net + Epsilon
+        Calculates utility by reading policy parameters from the local Barangay Agent.
         """
         # --- A. TPB Score ---
         w_att, w_sn, w_pbc = 0.4, 0.3, 0.3
@@ -91,31 +91,25 @@ class HouseholdAgent(mesa.Agent):
                     (w_pbc * self.pbc)
 
         # --- B. Economic Costs (C_Net) ---
-        c_effort = 0.1      # Fixed cost of effort
-        c_monetary = 0.05   # Cost of sacks
-        incentive = self.model.reward_value if self.is_compliant else 0.0
-
-        # Expected Fine: Fine Amount * Probability of Catching (Enforcement Intensity)
-        prob_catch = self.model.enforcement_intensity 
-        expected_fine = self.model.fine_amount * prob_catch
+        c_effort = 0.1      
+        c_monetary = 0.05   
+        incentive = self.model.reward_value if self.is_compliant else 0.0 # Reward is still global
+        
+        # 🔥 FIX: Read Fine and Enforcement from local BARANGAY Agent
+        prob_catch = self.barangay.enforcement_intensity 
+        fine_amount = self.barangay.fine_amount 
+        
+        expected_fine = fine_amount * prob_catch
 
         # --- C. Gamma Weight (Income Sensitivity) ---
         gamma = {1: 1.5, 2: 1.2, 3: 1.0}.get(self.income_level, 1.0)
 
+        # Scale fine for Utility calculation (normalize it)
+        # Using 1000.0 as the maximum expected fine for normalization
+        normalized_fine = expected_fine / 1000.0 
+
         # Net Cost calculation:
-        # If compliant: Cost = (Effort + Monetary - Incentive) * Gamma
-        # If non-compliant: Cost = (Expected Fine) * Gamma
-        # But for Utility, we usually model the *Utility of Compliance*:
-        
-        # Net Cost of COMPLIANCE:
-        c_net_compliance = (c_effort + c_monetary - incentive) * gamma
-        
-        # We subtract the "cost of compliance" from the TPB score.
-        # But we must also consider the "risk of non-compliance" (Expected Fine).
-        # A simple way: The Expected Fine acts as a "Negative Cost" (a benefit) to complying.
-        # So: C_Net = (Effort + Monetary - Incentive) - (Expected Fine)
-        
-        c_net = ((c_effort + c_monetary - incentive) - expected_fine) * gamma
+        c_net = ((c_effort + c_monetary - incentive) - normalized_fine) * gamma
         
         epsilon = np.random.normal(0, 0.05)
         
