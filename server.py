@@ -38,25 +38,23 @@ class Spacer(mesa.visualization.TextElement):
 
 class ViewSwitcher(mesa.visualization.TextElement):
     def render(self, model):
-        # We use a special <img> tag that fails to load (src="x") to trigger the 'onerror' event.
-        # This FORCES the JavaScript to execute even if the dashboard blocks normal scripts.
         return """
         <div class="switcher-box">
             <h4>Active Simulation View</h4>
-            <div class="btn-group">
-                <button id="btn_0" class="bgy-btn active" onclick="window.switchView(0)">Poblacion</button>
-                <button id="btn_1" class="bgy-btn" onclick="window.switchView(1)">Rural</button>
-                <button id="btn_2" class="bgy-btn" onclick="window.switchView(2)">Coastal</button>
-                <button id="btn_3" class="bgy-btn" onclick="window.switchView(3)">Bgy 4</button>
-                <button id="btn_4" class="bgy-btn" onclick="window.switchView(4)">Bgy 5</button> 
-                <button id="btn_5" class="bgy-btn" onclick="window.switchView(5)">Bgy 6</button>
-                <button id="btn_6" class="bgy-btn" onclick="window.switchView(6)">Bgy 7</button>
+            <div class="btn-group" id="bgy-btn-group">
+                <button id="btn_0" class="bgy-btn" onclick="window.switchView(0)">Poblacion</button>
+                <button id="btn_1" class="bgy-btn" onclick="window.switchView(1)">Liangan East</button>
+                <button id="btn_2" class="bgy-btn" onclick="window.switchView(2)">Ezperanza</button>
+                <button id="btn_3" class="bgy-btn" onclick="window.switchView(3)">Binuni</button>
+                <button id="btn_4" class="bgy-btn" onclick="window.switchView(4)">Demologan</button> 
+                <button id="btn_5" class="bgy-btn" onclick="window.switchView(5)">Mati</button>
+                <button id="btn_6" class="bgy-btn" onclick="window.switchView(6)">Babalaya</button>
             </div>
             
             <img src="x" style="display:none;" onerror="
                 if (!window.switchView) {
-                    console.log('Injecting switchView logic...');
                     window.switchView = function(targetIndex) {
+                        // 1. Handle Maps
                         let maps = document.getElementsByClassName('world-grid-parent');
                         if (maps.length < 7) {
                             setTimeout(() => window.switchView(targetIndex), 100);
@@ -79,14 +77,30 @@ class ViewSwitcher(mesa.visualization.TextElement):
                             }
                         }
 
-                        let btns = document.querySelectorAll('.bgy-btn');
-                        btns.forEach(b => b.classList.remove('active'));
-                        let activeBtn = document.getElementById('btn_' + targetIndex);
-                        if(activeBtn) activeBtn.classList.add('active');
+                        // 2. Handle Buttons (Logic Fix)
+                        // We target the specific container ID to ensure we find the right buttons
+                        let container = document.getElementById('bgy-btn-group');
+                        if (container) {
+                            let btns = container.getElementsByClassName('bgy-btn');
+                            
+                            // Remove 'active' class from ALL buttons
+                            for(let i = 0; i < btns.length; i++) {
+                                btns[i].classList.remove('active');
+                            }
+                            
+                            // Add 'active' class to the clicked button
+                            let activeBtn = document.getElementById('btn_' + targetIndex);
+                            if(activeBtn) {
+                                activeBtn.classList.add('active');
+                            }
+                        }
                     };
                     
-                    // Trigger default view immediately
-                    setTimeout(() => window.switchView(0), 500);
+                    // Initialize: Run once on load to set default view
+                    if (!window.hasInitializedView) {
+                        window.hasInitializedView = true;
+                        setTimeout(() => window.switchView(0), 500);
+                    }
                 }
             ">
         </div>
@@ -113,7 +127,12 @@ class ViewSwitcher(mesa.visualization.TextElement):
                 padding: 10px 20px; margin: 2px; border: 1px solid #aaa; 
                 cursor: pointer; border-radius: 4px; background: #f8f9fa; font-weight: bold;
             }
-            .bgy-btn.active { background: #007bff; color: white; border-color: #0056b3; }
+            /* Explicit Active Style with !important to override defaults */
+            .bgy-btn.active { 
+                background-color: #007bff !important; 
+                color: white !important; 
+                border-color: #0056b3 !important; 
+            }
             .bgy-btn:hover { background: #e2e6ea; }
         </style>
         """
