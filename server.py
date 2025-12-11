@@ -1,75 +1,188 @@
-from mesa.visualization.modules import CanvasGrid, ChartModule
-from mesa.visualization.UserParam import Slider
+import mesa
+from mesa.visualization.modules import CanvasGrid, ChartModule, TextElement
 from mesa.visualization.ModularVisualization import ModularServer
 
-from model import WasteModel
-from agent import HouseholdAgent, BarangayOfficial, CollectionVehicle
+# Import your model and agents
+from agents.bacolod_model import BacolodModel
+from agents.household_agent import HouseholdAgent
+from agents.enforcement_agent import EnforcementAgent
+from agents.barangay_agent import BarangayAgent
 
-def agent_portrayal(agent):
-    """
-    Determines how agents are rendered on the grid.
-    """
-    if isinstance(agent, HouseholdAgent):
-        portrayal = {"Shape": "circle", "r": 0.8, "Filled": "true"}
+# --- 1. Define How Agents Look ---
+# Function to generate a view focused on a SPECIFIC Barangay
+def make_barangay_portrayal(barangay_target_id):
+    
+    def local_portrayal(agent):
+        if agent is None:
+            return
+
+        # --- 1. FILTER: Only show agents from the target Barangay ---
+        should_draw = False
         
-        # Green = Compliant (Good Behavior)
-        if agent.is_compliant:
-            portrayal["Color"] = "Green"
+        # Check Household/Enforcement Agents
+        if hasattr(agent, 'barangay_id'):
+            if agent.barangay_id == barangay_target_id:
+                should_draw = True
+        
+        # Check the Barangay Center Agent itself
+        elif isinstance(agent, BarangayAgent):
+            if agent.unique_id == barangay_target_id:
+                should_draw = True
+                
+        if not should_draw:
+            return None # Hide this agent from this specific map
+
+        # --- 2. DRAW: Standard styling (Same as before) ---
+        portrayal = {}
+        agent_class = type(agent).__name__
+
+        if agent_class == "HouseholdAgent":
+            portrayal["Shape"] = "circle"
+            portrayal["Filled"] = "true"
+            portrayal["r"] = 0.8  # Make them slightly larger for mini-maps
             portrayal["Layer"] = 0
-        # Red = Non-Compliant (Risk)
-        else:
-            portrayal["Color"] = "Red"
-            portrayal["Layer"] = 0
+            portrayal["Color"] = "green" if agent.is_compliant else "red"
             
+        elif agent_class == "EnforcementAgent":
+            portrayal["Shape"] = "rect"
+            portrayal["Filled"] = "true"
+            portrayal["w"] = 0.8
+            portrayal["h"] = 0.8
+            portrayal["Layer"] = 1
+            portrayal["Color"] = "blue"
+            
+        elif agent_class == "BarangayAgent":
+            portrayal["Shape"] = "circle"
+            portrayal["Filled"] = "true"
+            portrayal["r"] = 1.0
+            portrayal["Layer"] = 2
+            portrayal["Color"] = "black"
+
         return portrayal
 
-    elif isinstance(agent, BarangayOfficial):
-        # Blue Square = Enforcement/IEC Agent
-        # Layer 2 ensures it draws ON TOP of houses
-        return {"Shape": "rect", "w": 0.6, "h": 0.6, "Color": "Blue", "Filled": "true", "Layer": 2}
+    return local_portrayal
 
-    elif isinstance(agent, CollectionVehicle):
-        # Yellow Circle = Garbage Truck
-        # Layer 3 ensures it draws ON TOP of everything
-        return {"Shape": "circle", "r": 0.9, "Color": "Yellow", "Filled": "true", "Layer": 3}
+class CssLayout(mesa.visualization.TextElement):
+    def __init__(self):
+        pass
 
-# --- 1. Define Visual Settings ---
-# We define a fixed MAX size so the visualization doesn't break when switching Barangays.
-MAX_WIDTH = 50
-MAX_HEIGHT = 50
+    def render(self, model):
+        return """
+        <style>
+            /* --- 1. FORCE FULL WIDTH CONTAINER --- */
+            .container-fluid {
+                max-width: 100vw !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            
+            /* --- 2. MOVE SIDEBAR TO BOTTOM --- */
+            .col-md-3 {
+                order: 10 !important; 
+                width: 100% !important;
+                max-width: 100% !important;
+                flex: 0 0 100% !important;
+                background: #f8f9fa;
+                border-top: 4px solid #333;
+                padding: 10px !important;
+                display: flex;
+                justify-content: center;
+                gap: 15px;
+            }
 
-# Create the Grid Visualization Element
-canvas_element = CanvasGrid(agent_portrayal, MAX_WIDTH, MAX_HEIGHT, 500, 500)
+            .col-md-9 {
+                width: 100% !important;
+                max-width: 100% !important;
+                flex: 0 0 100% !important;
+                padding: 0 !important;
+            }
 
-# --- 2. Define Charts ---
-# Tracks the result of the TPB decisions over time
-chart_element = ChartModule([
-    {"Label": "ComplianceRate", "Color": "Green"},
-    {"Label": "ImproperDisposal", "Color": "Black"},
-], data_collector_name='datacollector')
+            /* --- 3. THE MAP CONTAINER --- */
+            #elements {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                justify-content: center !important;
+                width: 98vw !important; /* Force to fit screen */
+                margin-left: 1vw !important;
+                gap: 0 !important; /* We handle spacing via margins */
+            }
+            
+            #elements > div {
+                box-sizing: border-box !important;
+                border: 1px solid #ccc;
+                background: white;
+                margin: 5px !important; /* Small uniform margin */
+            }
 
-# --- 3. Define Interactive Parameters ---
-model_params = {
-    # The Selector: Switches between the 7 different scenarios in barangay_config.py
-    "BARANGAY_ID": Slider("Select Barangay Scenario", 1, 1, 7, 1),
+            /* --- ROW 1: 3 MAPS --- */
+            /* 30% * 3 = 90%. Leaves 10% for margins/scrollbars. Safe! */
+            #elements > div:nth-child(2),
+            #elements > div:nth-child(3),
+            #elements > div:nth-child(4) {
+                flex: 0 0 30% !important;
+                max-width: 30% !important;
+                min-width: 150px !important; /* Allow shrinking */
+            }
 
-    # --- TPB Policy Levers ---
-    # These sliders allow you to test your Thesis Interventions in real-time
-    "FINE_EFFICACY": Slider("Fine Efficacy (Social Norms)", 0.3, 0.0, 1.0, 0.1),
-    "INCENTIVE_EFFICACY": Slider("Incentive Efficacy (Threshold)", 0.1, 0.0, 1.0, 0.1),
-    "IEC_INTENSITY": Slider("IEC Intensity (Attitude)", 0.2, 0.0, 1.0, 0.1),
-    
-    # Required Fixed Dimensions for the Server
-    "width": MAX_WIDTH,
-    "height": MAX_HEIGHT,
-}
+            /* --- ROW 2: 4 MAPS --- */
+            /* 22% * 4 = 88%. Leaves 12% for margins. Very Safe! */
+            #elements > div:nth-child(5),
+            #elements > div:nth-child(6),
+            #elements > div:nth-child(7),
+            #elements > div:nth-child(8) {
+                flex: 0 0 22% !important;
+                max-width: 22% !important;
+                min-width: 150px !important; /* Allow shrinking */
+            }
 
-# --- 4. Launch the Server ---
+            /* --- ROW 3: CHART --- */
+            #elements > div:last-child {
+                flex: 0 0 95% !important;
+                max-width: 95% !important;
+                border: 2px solid green;
+                margin-top: 10px !important;
+            }
+
+            /* --- TITLE --- */
+            #elements > div:nth-child(1) {
+                flex: 0 0 100% !important;
+                border: none !important;
+                background: transparent !important;
+                text-align: center;
+                font-weight: bold;
+                font-size: 20px;
+                margin-bottom: 5px !important;
+            }
+        </style>
+        <div style="display:none">Layout Loaded</div>
+        <div>Bacolod 7-Barangay Dashboard</div>
+        """
+
+# --- Setup Visualization Elements ---
+visual_elements = []
+
+# 1. ADD LAYOUT STYLE FIRST (Crucial!)
+visual_elements.append(CssLayout()) 
+
+# 2. Add 7 Mini-Maps
+for i in range(7):
+    target_id = f"BGY_{i}"
+    portrayal_method = make_barangay_portrayal(target_id)
+    grid = CanvasGrid(portrayal_method, 80, 80, 300, 300)
+    visual_elements.append(grid)
+
+# 3. Add Chart
+chart = ChartModule([{"Label": "Average Compliance", "Color": "Green"}], data_collector_name='datacollector')
+visual_elements.append(chart)
+
+# --- Launch Server ---
 server = ModularServer(
-    WasteModel, 
-    [canvas_element, chart_element], 
-    "Waste Policy ABM (Theory of Planned Behavior)", 
-    model_params
+    BacolodModel,
+    visual_elements,
+    "Bacolod Waste Policy", # This title appears in the browser tab
+    {
+        "seed": 42
+    }
 )
-
-server.launch(port=8521)
+server.port = 8521
+server.launch()
