@@ -1,6 +1,6 @@
 import mesa
 import numpy as np
-import random # <--- THIS IS CRITICAL. If missing, it crashes at Step 2.
+import random 
 import math
 
 # --- Agent Base Class ---
