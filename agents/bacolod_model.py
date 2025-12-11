@@ -33,9 +33,10 @@ class BacolodModel(mesa.Model):
         self.current_budget = config.ANNUAL_BUDGET
         self.recent_fines_collected = 0
 
-        # 1. SETUP GRID (100x100)
-        self.grid_width = 100   
-        self.grid_height = 100 
+        # 1. SETUP GRID (Standard Size for ONE Barangay)
+        # We use a standard size (e.g., 50x50). All 7 barangays will use this SAME coordinate space independently.
+        self.grid_width = 50   
+        self.grid_height = 50 
         self.grid = MultiGrid(self.grid_width, self.grid_height, torus=False)
         self.schedule = RandomActivation(self)
         self.running = True
@@ -43,30 +44,12 @@ class BacolodModel(mesa.Model):
         self.barangays = []
         agent_id_counter = 0
         
-        # 2. DEFINE ZONES (100x100 Scale)
-        zones = [
-            (20, 80, 30, 30), # Bgy 0
-            (50, 80, 30, 30), # Bgy 1
-            (80, 80, 30, 30), # Bgy 2
-            (20, 50, 30, 30), # Bgy 3
-            (50, 50, 30, 30), # Bgy 4
-            (80, 50, 30, 30), # Bgy 5
-            (50, 20, 30, 30)  # Bgy 6
-        ]
-
         # --- LOOP THROUGH CONFIGURATION ---
         for i, b_conf in enumerate(config.BARANGAY_CONFIGS):
             b_agent = BarangayAgent(f"BGY_{i}", self)
             b_agent.name = b_conf["name"]
             
-            # Assign Spatial Boundaries
-            cx, cy, w, h = zones[i]
-            b_agent.x_min = cx - (w // 2)
-            b_agent.x_max = cx + (w // 2)
-            b_agent.y_min = cy - (h // 2)
-            b_agent.y_max = cy + (h // 2)
-            
-            # Policy (NOTE: These should ideally come from b_conf, but are hardcoded here for safety)
+            # Policy Initialization
             b_agent.fine_amount = 500
             b_agent.enforcement_intensity = 0.5
 
@@ -77,20 +60,19 @@ class BacolodModel(mesa.Model):
             n_households = b_conf["N_HOUSEHOLDS"]
             profile_key = b_conf["income_profile"]
             
-            # FIX: Ensure income_probs is a proper list before use
+            # Ensure income_probs is a proper list
             income_probs = list(config.INCOME_PROFILES[profile_key])
             
             for _ in range(n_households):
-                # 1. Position
-                x = random.randint(b_agent.x_min + 1, b_agent.x_max - 1)
-                y = random.randint(b_agent.y_min + 1, b_agent.y_max - 1)
-                x = max(0, min(x, self.grid_width - 1))
-                y = max(0, min(y, self.grid_height - 1))
+                # 2. Position: Randomly place across the WHOLE grid
+                # Since agents filter by ID, overlapping coordinates doesn't matter for logic
+                x = self.random.randrange(self.grid_width)
+                y = self.random.randrange(self.grid_height)
 
-                # 2. Income (Using np.random.choice correctly)
+                # 3. Income
                 income = np.random.choice([1, 2, 3], p=income_probs)
                 
-                # 3. Initial Compliance
+                # 4. Initial Compliance
                 is_compliant = (random.random() < b_conf["initial_compliance"])
                 
                 a = HouseholdAgent(agent_id_counter, self, income_level=income, initial_compliance=is_compliant)
@@ -108,8 +90,13 @@ class BacolodModel(mesa.Model):
                 e_agent = EnforcementAgent(f"ENF_{agent_id_counter}", self)
                 agent_id_counter += 1
                 e_agent.barangay_id = b_agent.unique_id
+                
+                # Place enforcers randomly or in center
+                ex = self.random.randrange(self.grid_width)
+                ey = self.random.randrange(self.grid_height)
+                
                 self.schedule.add(e_agent)
-                self.grid.place_agent(e_agent, (cx, cy))
+                self.grid.place_agent(e_agent, (ex, ey))
 
         # Data Collector
         reporters = {

@@ -49,10 +49,16 @@ class HouseholdAgent(mesa.Agent):
 
     def update_social_norms(self):
         """
-        Calculates social pressure with Asymmetric Influence.
+        Calculates social pressure. 
+        CRITICAL FIX: Only look at neighbors in the SAME barangay.
         """
         neighbors = self.model.grid.get_neighbors(self.pos, moore=True, radius=2)
-        household_neighbors = [n for n in neighbors if isinstance(n, HouseholdAgent)]
+        
+        # Filter neighbors: Must be HouseholdAgent AND share my barangay_id
+        household_neighbors = [
+            n for n in neighbors 
+            if isinstance(n, HouseholdAgent) and n.barangay_id == self.barangay_id
+        ]
         
         if not household_neighbors:
             return 0.5 

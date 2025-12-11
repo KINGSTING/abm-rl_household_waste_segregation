@@ -17,15 +17,31 @@ def make_barangay_portrayal(barangay_target_id):
         portrayal = {}
         agent_class = type(agent).__name__
         
+        # HOUSEHOLDS: Use r=0.5 to fit exactly inside one grid cell
         if agent_class == "HouseholdAgent":
-            portrayal["Shape"] = "circle"; portrayal["Filled"] = "true"; portrayal["r"] = 3.0; portrayal["Layer"] = 0
+            portrayal["Shape"] = "circle"
+            portrayal["Filled"] = "true"
+            portrayal["r"] = 0.5   # FIXED: Reduced from 3.0 to 0.5
+            portrayal["Layer"] = 0
             portrayal["Color"] = "green" if agent.is_compliant else "red"
+            
+        # ENFORCEMENT: Use w=0.8 to be distinct but contained
         elif agent_class == "EnforcementAgent":
-            portrayal["Shape"] = "rect"; portrayal["Filled"] = "true"; portrayal["w"] = 4.0; portrayal["h"] = 4.0; portrayal["Layer"] = 1
+            portrayal["Shape"] = "rect"
+            portrayal["Filled"] = "true"
+            portrayal["w"] = 0.8   # FIXED: Reduced from 4.0 to 0.8
+            portrayal["h"] = 0.8
+            portrayal["Layer"] = 1
             portrayal["Color"] = "blue"
+            
+        # BARANGAY CENTER: Slightly larger to stand out
         elif agent_class == "BarangayAgent":
-            portrayal["Shape"] = "circle"; portrayal["Filled"] = "true"; portrayal["r"] = 5.0; portrayal["Layer"] = 2
+            portrayal["Shape"] = "circle"
+            portrayal["Filled"] = "true"
+            portrayal["r"] = 1.0   # FIXED: Reduced from 5.0 to 1.0
+            portrayal["Layer"] = 2
             portrayal["Color"] = "black"
+            
         return portrayal
     return local_portrayal
 
@@ -144,7 +160,7 @@ visual_elements.append(Spacer())
 
 for i in range(7):
     portrayal_fn = make_barangay_portrayal(f"BGY_{i}")
-    grid = CanvasGrid(portrayal_fn, 100, 100, 600, 600)
+    grid = CanvasGrid(portrayal_fn, 50, 50, 600, 600)
     visual_elements.append(grid)
 
 chart = ChartModule([{"Label": "Global Compliance", "Color": "Black"}] + 
@@ -159,5 +175,5 @@ server = ModularServer(
     "Bacolod Multi-View Simulation",
     {"seed": 42}
 )
-server.port = 8521
+server.port = 8522
 server.launch()
