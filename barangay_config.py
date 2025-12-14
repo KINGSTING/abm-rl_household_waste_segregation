@@ -28,8 +28,8 @@ BARANGAY_CONFIGS = [
     {
         "id": 1, 
         "name": "Bgy Lingan_East", 
-        "N_HOUSEHOLDS": 30, 
-        "N_OFFICIALS": 1, 
+        "N_HOUSEHOLDS": 608, 
+        "N_OFFICIALS": 10, 
         "initial_compliance": 0.8, 
         "width": 15, 
         "height": 15, 

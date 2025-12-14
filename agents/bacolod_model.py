@@ -41,6 +41,10 @@ class BacolodModel(mesa.Model):
         self.schedule = RandomActivation(self)
         self.running = True
         
+        self.political_capital = 1.0  # Starts at 100% (Eq 3.6)
+        self.alpha = 0.05  # Sensitivity to enforcement (Eq 3.7)
+        self.beta = 0.02   # Recovery rate (Eq 3.7)
+
         self.barangays = []
         agent_id_counter = 0
         
@@ -124,3 +128,57 @@ class BacolodModel(mesa.Model):
         self.datacollector.collect(self)
         self.schedule.step()
         if self.schedule.steps >= 90: self.running = False
+
+    def update_political_capital(self):
+        # Calculate average enforcement intensity across all barangays
+        avg_enforcement = sum(b.enforcement_intensity for b in self.barangays) / 7
+        
+        # Equation 3.7: P_cap(t+1) = P_cap(t) - (alpha * E) + (beta * Decay)
+        decay = self.alpha * avg_enforcement
+        recovery = self.beta * (1.0 - avg_enforcement) # Simplified recovery
+        
+        self.political_capital = max(0.0, min(1.0, self.political_capital - decay + recovery))
+
+    def get_state(self):
+        # 1. Compliance Rates (7 numbers)
+        compliance_rates = [b.get_local_compliance() for b in self.barangays]
+        
+        # 2. Remaining Budget (Normalized 0-1)
+        # Assuming annual budget is P1,500,000
+        norm_budget = self.current_budget / 1500000.0
+        
+        # 3. Time Index (Quarter 1-4)
+        # Assuming 90 ticks per quarter
+        current_quarter = (self.schedule.steps // 90) + 1
+        norm_time = current_quarter / 4.0
+        
+        # 4. Political Capital (0-1)
+        p_cap = self.political_capital
+        
+        # Combine into one list (Size: 10)
+        state = compliance_rates + [norm_budget, norm_time, p_cap]
+        return np.array(state, dtype=np.float32)
+    
+    def apply_action(self, action_vector):
+        """
+        Args:
+            action_vector: List of 21 numbers (3 levers per barangay * 7 barangays)
+                        Outputted by the Neural Network.
+        """
+        # 1. Decode Action (Ensure budget constraint Eq 3.10)
+        # This scaling usually happens outside, but good to double check
+        total_alloc = sum(action_vector)
+        if total_alloc > self.quarterly_budget:
+            scale_factor = self.quarterly_budget / total_alloc
+            action_vector = [a * scale_factor for a in action_vector]
+
+        # 2. Apply to Each Barangay
+        for i, bgy in enumerate(self.barangays):
+            # Slice the vector: indices 0-2 for Bgy 0, 3-5 for Bgy 1...
+            idx = i * 3
+            iec_fund = action_vector[idx]
+            enf_fund = action_vector[idx+1]
+            inc_fund = action_vector[idx+2]
+            
+            # UPDATE AGENT PARAMETERS
+            bgy.update_policy(iec_fund, enf_fund, inc_fund)

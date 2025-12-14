@@ -134,3 +134,16 @@ class HouseholdAgent(mesa.Agent):
             self.is_compliant = True
         else:
             self.is_compliant = False
+
+    def update_attitude(self):
+        # Thesis logic: Attitude decays naturally, but boosts with IEC
+        decay_rate = 0.01
+        
+        # 1. Apply Decay
+        self.attitude = max(0.0, self.attitude - decay_rate)
+        
+        # 2. Apply Boost (From Barangay's IEC)
+        # The BarangayAgent needs to store 'iec_intensity' from the action above
+        if self.barangay.iec_intensity > 0:
+            boost = self.barangay.iec_intensity * 0.05
+            self.attitude = min(1.0, self.attitude + boost)
