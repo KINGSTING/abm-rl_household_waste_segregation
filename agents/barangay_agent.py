@@ -15,7 +15,7 @@ class BarangayAgent(mesa.Agent):
         self.enforcement_budget = 0.0  # ADD THIS LINE (or ensure it's present)
         self.incentive_budget = 0.0    # ADD THIS LINE (or ensure it's present)
         
-        self.enforcement_intensity = 0.0
+        self.enforcement_intensity = 0.5
         self.iec_intensity = 0.0
         self.reward_value = 0.0 
         
@@ -24,7 +24,7 @@ class BarangayAgent(mesa.Agent):
         self.x_max = 0
         self.y_min = 0
         self.y_max = 0
-        self.fine_amount = 0
+        self.fine_amount = 500
 
     def receive_budget(self, budget_allocation):
         # (Budget logic remains the same)

@@ -31,21 +31,32 @@ class HouseholdAgent(mesa.Agent):
         self.is_compliant = initial_compliance
         self.utility = 0.0
 
+        # Ensure attitude is a float (0.0 to 1.0)
+        self.attitude = 0.66 if initial_compliance else 0.3  # Baseline from Thesis Table 3.1 [cite: 449]
+        self.attitude_decay_rate = 0.005  # Slow decay per tick
+
     def update_attitude(self):
         """
-        Logic: Decay, IEC Boost, Reactance
+        Dynamic Attitude Update (Thesis Section 3.3.1)
+        1. Natural Decay ("Public Forgetting")
+        2. IEC Boost (If Barangay spends on education)
         """
-        # 1. Natural Decay
-        self.attitude = max(0.1, self.attitude * 0.99)
+        # 1. Apply Natural Decay
+        self.attitude -= self.attitude_decay_rate
 
-        # 2. IEC Boost (diminishing returns)
-        if self.barangay.iec_budget > 0:
-            boost = np.log1p(self.barangay.iec_budget) * 0.05
-            self.attitude = min(1.0, self.attitude + boost)
+        # 2. Apply IEC Boost
+        # We look at our local Barangay's IEC intensity (0.0 to 1.0)
+        if self.barangay and hasattr(self.barangay, 'iec_intensity'):
+            # Boost scales with intensity. Max boost per tick = 0.02
+            boost = self.barangay.iec_intensity * 0.02
+            self.attitude += boost
 
-        # 3. Psychological Reactance (Pushback if enforcement is oppressive)
-        if self.barangay.enforcement_intensity > 0.8:
-            self.attitude = max(0.0, self.attitude - 0.05)
+        # 3. Apply Reactance (Optional: High enforcement slightly lowers attitude)
+        if self.barangay and self.barangay.enforcement_intensity > 0.8:
+             self.attitude -= 0.002 # Reactance penalty
+
+        # Clamp between 0 and 1
+        self.attitude = max(0.0, min(1.0, self.attitude))
 
     def update_social_norms(self):
         """
@@ -134,6 +145,10 @@ class HouseholdAgent(mesa.Agent):
             self.is_compliant = True
         else:
             self.is_compliant = False
+
+        # Existing logic
+        self.update_social_norms()
+        self.make_decision()
 
     def update_attitude(self):
         # Thesis logic: Attitude decays naturally, but boosts with IEC
