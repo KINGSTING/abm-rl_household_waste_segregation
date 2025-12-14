@@ -155,17 +155,23 @@ class BacolodModel(mesa.Model):
         Format: [CB_1...7, B_Rem, M_Index, P_Cap] (Size 10)
         """
         # 1. Compliance Rates (7 numbers)
+        # These are naturally between 0.0 and 1.0
         compliance_rates = [b.get_local_compliance() for b in self.barangays]
         
         # 2. Remaining Budget (Normalized 0-1)
+        # FIX: The LGU might collect massive fines, pushing budget > 100%.
+        # We clamp it to 1.0 because the AI just needs to know "I have max money".
         norm_budget = self.current_budget / self.annual_budget
+        norm_budget = max(0.0, min(1.0, norm_budget)) # <--- CLAMPED
         
-        # 3. Time Index (Quarter 1-4)
+        # 3. Time Index (Quarter 1-12)
+        # FIX: Simulation runs for 3 years (12 quarters), not 4.
         current_quarter = (self.schedule.steps // 90) + 1
-        norm_time = current_quarter / 4.0
+        norm_time = current_quarter / 12.0            # <--- SCALED TO 3 YEARS
+        norm_time = max(0.0, min(1.0, norm_time))     # <--- CLAMPED
         
         # 4. Political Capital (0-1)
-        p_cap = self.political_capital
+        p_cap = max(0.0, min(1.0, self.political_capital)) # Clamp just in case
         
         # Combine into one list (Size: 10)
         state = compliance_rates + [norm_budget, norm_time, p_cap]
