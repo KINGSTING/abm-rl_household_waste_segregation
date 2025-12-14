@@ -49,6 +49,32 @@ class BarangayAgent(mesa.Agent):
         self.compliant_count = compliant_count
         self.compliance_rate = self.compliant_count / self.total_households
         return self.compliance_rate
+    
+    def update_policy(self, iec_fund, enf_fund, inc_fund):
+        """
+        Called by BacolodModel.apply_action().
+        Translates the RL Agent's budget allocation (in Pesos) into 
+        Intensity parameters (0.0 - 1.0) that affect Household behavior.
+        """
+        self.iec_fund = iec_fund
+        self.enf_fund = enf_fund
+        self.inc_fund = inc_fund
+
+        # CONVERSION: Money -> Intensity
+        # We assume ~50,000 PHP per quarter is "Maximum Saturation" (1.0 intensity)
+        # Why 50k? Annual budget P1.5M / 4 quarters = P375k. 
+        # Divided by 7 barangays = ~53k each. 
+        # So spending 50k on ONE lever is roughly "maxing it out".
+        SATURATION_POINT = 50000.0
+
+        # Calculate IEC Intensity (Boosts Attitude)
+        self.iec_intensity = min(1.0, iec_fund / SATURATION_POINT)
+        
+        # Calculate Enforcement Intensity (Increases Detection Probability)
+        self.enforcement_intensity = min(1.0, enf_fund / SATURATION_POINT)
+
+        # Incentive budget is just stored directly (Households check if funds exist)
+        self.current_incentive_budget = inc_fund
 
     def step(self):
         self.get_local_compliance()
