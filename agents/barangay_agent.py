@@ -10,37 +10,36 @@ class BarangayAgent(mesa.Agent):
         self.total_households = 0
         self.compliant_count = 0
         
-        # --- 2. Policy/Budget Variables (CRITICAL FIX: Initialize all variables) ---
-        self.iec_budget = 0.0          # ADD THIS LINE (or ensure it's present)
-        self.enforcement_budget = 0.0  # ADD THIS LINE (or ensure it's present)
-        self.incentive_budget = 0.0    # ADD THIS LINE (or ensure it's present)
+        # --- 2. Policy/Budget Variables (CRITICAL FIX) ---
+        # We initialize the exact variable names that HouseholdAgent looks for:
+        self.iec_fund = 0.0        # Matches update_policy
+        self.enf_fund = 0.0        # Matches update_policy
+        self.inc_fund = 0.0        # Matches HouseholdAgent check
         
+        # --- 3. Derived Policy Parameters ---
         self.enforcement_intensity = 0.5
         self.iec_intensity = 0.0
-        self.reward_value = 0.0 
+        self.fine_amount = 500
         
-        # Add spatial bounds for logic safety (if not done already)
+        # Optional: Spatial bounds (if used for visualization later)
         self.x_min = 0
         self.x_max = 0
         self.y_min = 0
         self.y_max = 0
-        self.fine_amount = 500
-
-    def receive_budget(self, budget_allocation):
-        # (Budget logic remains the same)
-        MAX_IEC_BUDGET = 50000 
-        MAX_ENFORCEMENT_BUDGET = 50000
-        self.iec_intensity = min(1.0, self.iec_budget / MAX_IEC_BUDGET)
-        self.enforcement_intensity = min(1.0, self.enforcement_budget / MAX_ENFORCEMENT_BUDGET)
 
     def get_local_compliance(self):
-        """Calculates compliance for the DataCollector."""
+        """
+        Calculates compliance for the DataCollector.
+        """
+        # Filter agents that belong to this barangay
         my_households = [
             a for a in self.model.schedule.agents 
             if isinstance(a, HouseholdAgent) and getattr(a, 'barangay_id', None) == self.unique_id
         ]
         
         self.total_households = len(my_households)
+        
+        # Avoid division by zero
         if self.total_households == 0:
             self.compliance_rate = 0.0
             return 0.0
@@ -56,15 +55,13 @@ class BarangayAgent(mesa.Agent):
         Translates the RL Agent's budget allocation (in Pesos) into 
         Intensity parameters (0.0 - 1.0) that affect Household behavior.
         """
+        # 1. Update Financial Storage (Syncs with __init__)
         self.iec_fund = iec_fund
         self.enf_fund = enf_fund
         self.inc_fund = inc_fund
 
-        # CONVERSION: Money -> Intensity
+        # 2. CONVERSION: Money -> Intensity
         # We assume ~50,000 PHP per quarter is "Maximum Saturation" (1.0 intensity)
-        # Why 50k? Annual budget P1.5M / 4 quarters = P375k. 
-        # Divided by 7 barangays = ~53k each. 
-        # So spending 50k on ONE lever is roughly "maxing it out".
         SATURATION_POINT = 50000.0
 
         # Calculate IEC Intensity (Boosts Attitude)
@@ -73,8 +70,6 @@ class BarangayAgent(mesa.Agent):
         # Calculate Enforcement Intensity (Increases Detection Probability)
         self.enforcement_intensity = min(1.0, enf_fund / SATURATION_POINT)
 
-        # Incentive budget is just stored directly (Households check if funds exist)
-        self.current_incentive_budget = inc_fund
-
     def step(self):
+        # Update metrics every step so the dashboard sees live data
         self.get_local_compliance()

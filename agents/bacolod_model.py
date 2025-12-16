@@ -4,6 +4,9 @@ from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
 import numpy as np
 import random
+import os
+from stable_baselines3 import PPO
+
 import barangay_config as config
 from agents.household_agent import HouseholdAgent
 from agents.barangay_agent import BarangayAgent
@@ -15,7 +18,7 @@ def compute_global_compliance(model):
     return sum(1 for a in agents if a.is_compliant) / len(agents)
 
 class BacolodModel(mesa.Model):
-    def __init__(self, seed=None): 
+    def __init__(self, seed=None, train_mode=False): 
         if seed is not None:
             super().__init__(seed=seed)
             self._seed = seed
@@ -24,10 +27,23 @@ class BacolodModel(mesa.Model):
         else:
             super().__init__()
 
-        # Financials
+        # --- Simulation Mode ---
+        self.train_mode = train_mode
+        self.rl_agent = None
+        
+        # Load the Trained Brain (Only if NOT training)
+        if not self.train_mode:
+            model_path = "models/PPO/bacolod_ppo_final.zip"
+            if os.path.exists(model_path):
+                print(f"Loading Trained Agent from {model_path}...")
+                self.rl_agent = PPO.load(model_path)
+            else:
+                print("Warning: No trained model found. Running in Status Quo mode.")
+
+        # --- Financials ---
         self.annual_budget = config.ANNUAL_BUDGET
         self.current_budget = self.annual_budget
-        self.quarterly_budget = self.annual_budget / 4  # Fixed: Needed for apply_action scaling
+        self.quarterly_budget = self.annual_budget / 4 
         
         self.total_fines_collected = 0
         self.total_incentives_distributed = 0
@@ -36,17 +52,17 @@ class BacolodModel(mesa.Model):
         self.reward_value = 100
         self.recent_fines_collected = 0
 
-        # Grid Setup (Standard 50x50 independent space)
+        # --- Grid Setup ---
         self.grid_width = 50   
         self.grid_height = 50 
         self.grid = MultiGrid(self.grid_width, self.grid_height, torus=False)
         self.schedule = RandomActivation(self)
         self.running = True
         
-        # Political Capital Parameters (Thesis Eq 3.7)
-        self.political_capital = 1.0     # Starts at 100%
-        self.alpha_sensitivity = 0.05    # Fixed: Renamed from self.alpha to match update function
-        self.beta_recovery = 0.02        # Fixed: Renamed from self.beta to match update function
+        # --- Political Capital ---
+        self.political_capital = 1.0     
+        self.alpha_sensitivity = 0.05    
+        self.beta_recovery = 0.02        
 
         self.barangays = []
         agent_id_counter = 0
@@ -64,10 +80,22 @@ class BacolodModel(mesa.Model):
             self.schedule.add(b_agent)
             self.barangays.append(b_agent)
             
+            # --- NEW: Extract Behavior Profile ---
+            # 1. Get the key (e.g., "Liangan_East") from config
+            profile_key = b_conf.get("behavior_profile", "Poblacion") 
+            
+            # 2. Get the actual dictionary of weights from BEHAVIOR_PROFILES
+            if profile_key in config.BEHAVIOR_PROFILES:
+                behavior_data = config.BEHAVIOR_PROFILES[profile_key]
+            else:
+                print(f"Warning: Profile '{profile_key}' not found. Using default.")
+                # Fallback to Poblacion profile if key is missing
+                behavior_data = config.BEHAVIOR_PROFILES["Poblacion"]
+
             # Create Households
             n_households = b_conf["N_HOUSEHOLDS"]
-            profile_key = b_conf["income_profile"]
-            income_probs = list(config.INCOME_PROFILES[profile_key])
+            profile_key_income = b_conf["income_profile"]
+            income_probs = list(config.INCOME_PROFILES[profile_key_income])
             
             for _ in range(n_households):
                 x = self.random.randrange(self.grid_width)
@@ -75,7 +103,14 @@ class BacolodModel(mesa.Model):
                 income = np.random.choice([1, 2, 3], p=income_probs)
                 is_compliant = (random.random() < b_conf["initial_compliance"])
                 
-                a = HouseholdAgent(agent_id_counter, self, income_level=income, initial_compliance=is_compliant)
+                # 3. Pass behavior_data to the Agent
+                a = HouseholdAgent(
+                    agent_id_counter, 
+                    self, 
+                    income_level=income, 
+                    initial_compliance=is_compliant,
+                    behavior_params=behavior_data  # <--- CRITICAL CALIBRATION LINK
+                )
                 agent_id_counter += 1
                 a.barangay = b_agent
                 a.barangay_id = b_agent.unique_id
@@ -102,15 +137,19 @@ class BacolodModel(mesa.Model):
             "Global Compliance": compute_global_compliance,
             "Total Fines": lambda m: m.total_fines_collected,
         }
-        for i in range(7):
-            reporters[f"Bgy {i}"] = lambda m, b_idx=i: m.barangays[b_idx].get_local_compliance()
+        
+        # --- FIX: Use exact names for the Chart ---
+        # The order must match BARANGAY_CONFIGS in barangay_config.py
+        # 0: Poblacion, 1: Liangan East, 2: Ezperanza, 3: Binuni, 4: Babalaya, 5: Mati, 6: Demologan
+        bgy_names = ["Poblacion", "Liangan East", "Ezperanza", "Binuni", "Babalaya", "Mati", "Demologan"]
+        
+        for i, name in enumerate(bgy_names):
+            # We capture 'i' in the lambda default argument so it sticks
+            reporters[name] = lambda m, idx=i: m.barangays[idx].get_local_compliance()
+            
         self.datacollector = DataCollector(model_reporters=reporters)
 
     def update_political_capital(self):
-        """
-        Updates the LGU's Political Capital based on enforcement intensity.
-        Thesis Eq 3.7: P_cap(t+1) = P_cap(t) - (alpha * E) + (beta * Decay)
-        """
         avg_enforcement = 0
         if self.barangays:
             avg_enforcement = sum(b.enforcement_intensity for b in self.barangays) / len(self.barangays)
@@ -136,42 +175,60 @@ class BacolodModel(mesa.Model):
         """
         Advance the model by one step.
         """
-        # 1. Agents Act
+        # 1. AI INTERVENTION (Start of Quarter)
+        # Check if it's time for a decision (Every 90 steps, but not step 0)
+        if not self.train_mode and self.rl_agent is not None:
+            if self.schedule.steps > 0 and self.schedule.steps % 90 == 0:
+                print(f"\n--- Quarter {self.schedule.steps // 90} Decision Point ---")
+                current_state = self.get_state()
+                action, _ = self.rl_agent.predict(current_state, deterministic=True)
+                self.apply_action(action)
+                self.print_agent_decision(action)
+
+        # 2. Agents Act
         for b in self.barangays: b.step()
         self.schedule.step()
         
-        # 2. Update Globals
+        # 3. Update Globals
         self.update_political_capital() 
         self.calculate_costs()
         
-        # 3. Collect Data
+        # 4. Collect Data
         self.datacollector.collect(self)
         
-        if self.schedule.steps >= 90: self.running = False
+        # Stop after 1 quarter
+        if self.schedule.steps >= 89: self.running = False
+
+
+    def print_agent_decision(self, action):
+        """Helper to print what the AI actually decided."""
+        print("LGU Agent Policy Update:")
+        total_iec = sum(action[0::3])
+        total_enf = sum(action[1::3])
+        total_inc = sum(action[2::3])
+        print(f"  Total Allocated to IEC:        P {total_iec:,.2f}")
+        print(f"  Total Allocated to Enforcement: P {total_enf:,.2f}")
+        print(f"  Total Allocated to Incentives:  P {total_inc:,.2f}")
+        print(f"  Remaining Budget: P {self.current_budget:,.2f}")
 
     def get_state(self):
         """
         Returns the State Vector (S_t) for the Reinforcement Learning Agent.
-        Format: [CB_1...7, B_Rem, M_Index, P_Cap] (Size 10)
         """
         # 1. Compliance Rates (7 numbers)
-        # These are naturally between 0.0 and 1.0
         compliance_rates = [b.get_local_compliance() for b in self.barangays]
         
         # 2. Remaining Budget (Normalized 0-1)
-        # FIX: The LGU might collect massive fines, pushing budget > 100%.
-        # We clamp it to 1.0 because the AI just needs to know "I have max money".
         norm_budget = self.current_budget / self.annual_budget
-        norm_budget = max(0.0, min(1.0, norm_budget)) # <--- CLAMPED
+        norm_budget = max(0.0, min(1.0, norm_budget)) 
         
         # 3. Time Index (Quarter 1-12)
-        # FIX: Simulation runs for 3 years (12 quarters), not 4.
         current_quarter = (self.schedule.steps // 90) + 1
-        norm_time = current_quarter / 12.0            # <--- SCALED TO 3 YEARS
-        norm_time = max(0.0, min(1.0, norm_time))     # <--- CLAMPED
+        norm_time = current_quarter / 12.0            
+        norm_time = max(0.0, min(1.0, norm_time))     
         
         # 4. Political Capital (0-1)
-        p_cap = max(0.0, min(1.0, self.political_capital)) # Clamp just in case
+        p_cap = max(0.0, min(1.0, self.political_capital)) 
         
         # Combine into one list (Size: 10)
         state = compliance_rates + [norm_budget, norm_time, p_cap]
@@ -182,19 +239,15 @@ class BacolodModel(mesa.Model):
         Applies the RL Agent's decision.
         action_vector: List of 21 floats (3 levers * 7 barangays)
         """
-        # 1. Decode Action (Scale to Quarterly Budget)
         total_alloc = sum(action_vector)
         
-        # Prevent division by zero
         if total_alloc == 0:
             return 
 
-        # If AI tries to spend more than allowed, scale it down
         if total_alloc > self.quarterly_budget:
             scale_factor = self.quarterly_budget / total_alloc
             action_vector = [a * scale_factor for a in action_vector]
 
-        # 2. Apply to Each Barangay
         for i, bgy in enumerate(self.barangays):
             idx = i * 3
             iec_fund = action_vector[idx]
@@ -206,47 +259,32 @@ class BacolodModel(mesa.Model):
     def calculate_reward(self):
         """
         Calculates the Multi-Objective Reward (Thesis Eq 3.11).
-        R_total = w1*Compliance + w2*Sustainability - w3*Backlash
         """
-        # Weights (Calibrated based on thesis Section 3.4.4)
         w1 = 1.0  # Priority: Compliance
         w2 = 0.5  # Priority: Budget Safety
         w3 = 0.8  # Priority: Political Stability
 
-        # 1. COMPLIANCE REWARD (R_Compliance)
-        # Average compliance across all 7 barangays
+        # 1. COMPLIANCE REWARD
         if not self.barangays:
             avg_compliance = 0.0
         else:
             avg_compliance = sum(b.get_local_compliance() for b in self.barangays) / len(self.barangays)
         
-        # 2. SUSTAINABILITY REWARD (R_Sustainability) (Thesis Eq 3.12)
-        # Penalty for spending too fast. Ideal burn rate is ~25% per quarter.
-        # We calculate deviation from the ideal remaining budget.
-        
-        # Total steps in a year = 4 quarters * 90 days = 360 ticks
-        total_steps = 360 
-        # Calculate where we SHOULD be (e.g., at step 90, we should have 75% budget left)
+        # 2. SUSTAINABILITY REWARD
+        total_steps = 1080 
         ideal_remaining_pct = max(0.0, 1.0 - (self.schedule.steps / total_steps))
-        
-        # Calculate where we ACTUALLY are
         actual_remaining_pct = self.current_budget / self.annual_budget
-        
-        # Penalty increases as gap between Actual and Ideal widens
-        # We use negative absolute error so it becomes a penalty
         sustainability_penalty = abs(actual_remaining_pct - ideal_remaining_pct)
         r_sustainability = -sustainability_penalty 
 
-        # 3. POLITICAL BACKLASH PENALTY (P_Backlash) (Thesis Section 3.4.4)
-        # Triggered if Enforcement is High (>0.7) but Compliance is Low (<0.3)
-        # "Penalizing all households is unfeasible"
+        # 3. POLITICAL BACKLASH PENALTY
         avg_enforcement = 0.0
         if self.barangays:
             avg_enforcement = sum(b.enforcement_intensity for b in self.barangays) / len(self.barangays)
             
         p_backlash = 0.0
         if avg_enforcement > 0.7 and avg_compliance < 0.3:
-            p_backlash = 1.0  # Heavy penalty for "Draconian" measures on unprepared people
+            p_backlash = 1.0 
 
         # TOTAL REWARD CALCULATION
         r_total = (w1 * avg_compliance) + (w2 * r_sustainability) - (w3 * p_backlash)

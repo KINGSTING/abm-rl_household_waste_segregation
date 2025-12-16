@@ -2,6 +2,7 @@ import mesa
 from mesa.visualization.modules import CanvasGrid, ChartModule, TextElement
 from mesa.visualization.ModularVisualization import ModularServer
 
+# Import your custom agents and model
 from agents.bacolod_model import BacolodModel
 from agents.household_agent import HouseholdAgent
 from agents.enforcement_agent import EnforcementAgent
@@ -11,45 +12,47 @@ from agents.barangay_agent import BarangayAgent
 def make_barangay_portrayal(barangay_target_id):
     def local_portrayal(agent):
         if agent is None: return None
+        
+        # Filter: Only show agents belonging to this specific Barangay Grid
         if hasattr(agent, 'barangay_id') and agent.barangay_id != barangay_target_id: return None
         if isinstance(agent, BarangayAgent) and agent.unique_id != barangay_target_id: return None
 
         portrayal = {}
         agent_class = type(agent).__name__
         
-        # HOUSEHOLDS: Use r=0.5 to fit exactly inside one grid cell
+        # HOUSEHOLDS: Green (Compliant) vs Red (Non-Compliant)
         if agent_class == "HouseholdAgent":
             portrayal["Shape"] = "circle"
             portrayal["Filled"] = "true"
-            portrayal["r"] = 0.5   # FIXED: Reduced from 3.0 to 0.5
+            portrayal["r"] = 0.5   
             portrayal["Layer"] = 0
-            portrayal["Color"] = "green" if agent.is_compliant else "red"
+            is_compliant = getattr(agent, "is_compliant", False)
+            portrayal["Color"] = "green" if is_compliant else "red"
             
-        # ENFORCEMENT: Use w=0.8 to be distinct but contained
+        # ENFORCEMENT: Blue Squares
         elif agent_class == "EnforcementAgent":
             portrayal["Shape"] = "rect"
             portrayal["Filled"] = "true"
-            portrayal["w"] = 0.8   # FIXED: Reduced from 4.0 to 0.8
+            portrayal["w"] = 0.8  
             portrayal["h"] = 0.8
             portrayal["Layer"] = 1
             portrayal["Color"] = "blue"
             
-        # BARANGAY CENTER: Slightly larger to stand out
+        # BARANGAY CENTER: Black Dot
         elif agent_class == "BarangayAgent":
             portrayal["Shape"] = "circle"
             portrayal["Filled"] = "true"
-            portrayal["r"] = 1.0   # FIXED: Reduced from 5.0 to 1.0
+            portrayal["r"] = 1.0  
             portrayal["Layer"] = 2
             portrayal["Color"] = "black"
             
         return portrayal
     return local_portrayal
 
-# --- 2. Helper Classes ---
+# --- 2. Helper Classes (UI Layout) ---
 
 class Spacer(mesa.visualization.TextElement):
     def render(self, model):
-        # Increased Z-index to -1 so it sits behind everything
         return '<div style="height: 650px; width: 100%; display: block; z-index: -1;"></div>'
 
 class ViewSwitcher(mesa.visualization.TextElement):
@@ -93,18 +96,13 @@ class ViewSwitcher(mesa.visualization.TextElement):
                             }
                         }
 
-                        // 2. Handle Buttons (Logic Fix)
-                        // We target the specific container ID to ensure we find the right buttons
+                        // 2. Handle Buttons
                         let container = document.getElementById('bgy-btn-group');
                         if (container) {
                             let btns = container.getElementsByClassName('bgy-btn');
-                            
-                            // Remove 'active' class from ALL buttons
                             for(let i = 0; i < btns.length; i++) {
                                 btns[i].classList.remove('active');
                             }
-                            
-                            // Add 'active' class to the clicked button
                             let activeBtn = document.getElementById('btn_' + targetIndex);
                             if(activeBtn) {
                                 activeBtn.classList.add('active');
@@ -112,7 +110,6 @@ class ViewSwitcher(mesa.visualization.TextElement):
                         }
                     };
                     
-                    // Initialize: Run once on load to set default view
                     if (!window.hasInitializedView) {
                         window.hasInitializedView = true;
                         setTimeout(() => window.switchView(0), 500);
@@ -143,7 +140,6 @@ class ViewSwitcher(mesa.visualization.TextElement):
                 padding: 10px 20px; margin: 2px; border: 1px solid #aaa; 
                 cursor: pointer; border-radius: 4px; background: #f8f9fa; font-weight: bold;
             }
-            /* Explicit Active Style with !important to override defaults */
             .bgy-btn.active { 
                 background-color: #007bff !important; 
                 color: white !important; 
@@ -158,22 +154,48 @@ visual_elements = []
 visual_elements.append(ViewSwitcher()) 
 visual_elements.append(Spacer())
 
+# A. Create the 7 Maps (Grids)
 for i in range(7):
     portrayal_fn = make_barangay_portrayal(f"BGY_{i}")
     grid = CanvasGrid(portrayal_fn, 50, 50, 600, 600)
     visual_elements.append(grid)
 
-chart = ChartModule([{"Label": "Global Compliance", "Color": "Black"}] + 
-                    [{"Label": f"Bgy {i}", "Color": c} for i, c in enumerate(["red","orange","gold","green","cyan","blue","purple"])],
-                    data_collector_name='datacollector')
-visual_elements.append(chart)
+# B. Create the Compliance Chart
+barangay_chart_data = [
+    {"Label": "Poblacion",    "Color": "red"},
+    {"Label": "Liangan East", "Color": "orange"},
+    {"Label": "Ezperanza",    "Color": "gold"},
+    {"Label": "Binuni",       "Color": "green"},
+    {"Label": "Babalaya",     "Color": "cyan"},
+    {"Label": "Mati",         "Color": "blue"},
+    {"Label": "Demologan",    "Color": "purple"}
+]
+
+chart_compliance = ChartModule(
+    [{"Label": "Global Compliance", "Color": "Black"}] + barangay_chart_data,
+    data_collector_name='datacollector'
+)
+visual_elements.append(chart_compliance)
+
+# C. Create the Finance Chart (FIXED: This was missing)
+chart_finance = ChartModule(
+    [{"Label": "Total Fines", "Color": "Red"}],
+    data_collector_name='datacollector'
+)
+visual_elements.append(chart_finance)
 
 # --- 4. Launch ---
+model_params = {
+    "seed": 42,
+    "train_mode": False 
+}
+
 server = ModularServer(
     BacolodModel,
     visual_elements,
     "Bacolod Multi-View Simulation",
-    {"seed": 42}
+    model_params
 )
-server.port = 8522
+
+server.port = 8522 
 server.launch()

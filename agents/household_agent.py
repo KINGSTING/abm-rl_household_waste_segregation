@@ -6,25 +6,32 @@ class HouseholdAgent(mesa.Agent):
     Household Agent based on Theory of Planned Behavior (TPB).
     Decides to segregate based on Attitude, Social Norms, and PBC.
     """
-    def __init__(self, unique_id, model, income_level, initial_compliance):
+    # --- UPDATE: Accepted 'behavior_params' in init ---
+    def __init__(self, unique_id, model, income_level, initial_compliance, behavior_params=None):
         super().__init__(unique_id, model)
-        self.income_level = income_level  # 1 (Low), 2 (Mid), 3 (High)
+        self.income_level = income_level
         self.is_compliant = initial_compliance
         self.barangay = None    
         self.barangay_id = None 
 
-        # --- TPB Internal States ---
-        self.attitude = 0.66 if initial_compliance else 0.3 
-        self.sn = 0.5  
-        self.pbc = 0.5 
-        self.utility = 0.0  # <--- FIXED: Added attribute so Enforcers can modify it
-        
-        # Weights 
-        self.w_a = 0.4
-        self.w_sn = 0.3
-        self.w_pbc = 0.3
-        
-        self.attitude_decay_rate = 0.005
+        # --- Use Configured Parameters or Defaults ---
+        if behavior_params is None:
+            # Default fallback (Standard)
+            behavior_params = {"w_a": 0.4, "w_sn": 0.3, "w_pbc": 0.3, "c_effort": 0.2, "decay": 0.005}
+
+        # --- Dynamic TPB Weights ---
+        self.w_a = behavior_params["w_a"]
+        self.w_sn = behavior_params["w_sn"]
+        self.w_pbc = behavior_params["w_pbc"]
+        self.c_effort_base = behavior_params["c_effort"]
+        self.attitude_decay_rate = behavior_params["decay"]
+
+        # --- Initial Internal States ---
+        # Stronger start for compliant agents
+        self.attitude = 0.85 if initial_compliance else 0.2 
+        self.sn = 0.7 if initial_compliance else 0.4 
+        self.pbc = 0.7 if initial_compliance else 0.4
+        self.utility = 0.0  
 
     def update_social_norms(self):
         neighbors = self.model.grid.get_neighbors(self.pos, moore=True, radius=2)
@@ -61,13 +68,13 @@ class HouseholdAgent(mesa.Agent):
         prob_detection = self.barangay.enforcement_intensity if self.barangay else 0
         
         monetary_impact = incentive - (fine * prob_detection)
-        c_effort = 0.2
-        c_net = c_effort - (gamma * monetary_impact / 1000.0) 
+        
+        # USE DYNAMIC EFFORT COST
+        c_net = self.c_effort_base - (gamma * monetary_impact / 1000.0) 
 
-        # 2. Calculate Utility (TPB Formula)
+        # 2. Calculate Utility (TPB Formula with dynamic weights)
         epsilon = self.random.gauss(0, 0.1)
         
-        # <--- FIXED: Saved to self.utility instead of local variable
         self.utility = (self.w_a * self.attitude) + \
                        (self.w_sn * self.sn) + \
                        (self.w_pbc * self.pbc) - \
@@ -77,20 +84,10 @@ class HouseholdAgent(mesa.Agent):
         self.is_compliant = (self.utility > 0.5)
 
     def get_fined(self):
-        """
-        Called by EnforcementAgent when caught non-compliant.
-        Applies immediate penalty to utility and attitude.
-        """
-        # 1. Economic Hit (Reduces utility for this step)
         self.utility -= 0.5 
-        
-        # 2. Psychological Reactance (Being fined makes them grumpy)
-        # However, it also proves enforcement is real (increases Prob_Detection perception in future)
         self.attitude -= 0.05
-        
-        # 3. Report to Model
         if hasattr(self.model, 'total_fines_collected'):
-            self.model.total_fines_collected += 500 # Assume P500 fine
+            self.model.total_fines_collected += 500 
             self.model.recent_fines_collected += 500
 
     def step(self):
