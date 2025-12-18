@@ -32,34 +32,27 @@ INCOME_PROFILES = {
 
 BEHAVIOR_PROFILES = {
     "Poblacion": {
-        # Urban: High Attitude, Moderate Cost.
-        # Decay: 0.0005 (Standard forgetting curve)
-        "w_a": 0.70, "w_sn": 0.4, "w_pbc": 0.3, "c_effort": 0.05, "decay": 0.0005
+        "w_a": 0.65 , "w_sn": 0.4, "w_pbc": 0.5, "c_effort": 0.02, "decay": 0.0005
     },
     "Liangan_East": {
-        # Model Barangay: Very High Norms, Very Low Cost.
-        # Decay: 0.0001 (Habits stick very well here)
-        "w_a": 0.60, "w_sn": 0.7, "w_pbc": 0.4, "c_effort": 0.02, "decay": 0.0001
+        "w_a": 0.65, "w_sn": 0.6, "w_pbc": 0.5, "c_effort": 0.03, "decay": 0.0006
     },
     "Ezperanza": {
-        # Resistant: Higher cost, faster decay (harder environment).
-        "w_a": 0.30, "w_sn": 0.2, "w_pbc": 0.2, "c_effort": 0.08, "decay": 0.001
+        "w_a": 0.6, "w_sn": 0.5, "w_pbc": 0.6, "c_effort": 0.03, "decay": 0.0004
     },
     "Binuni": {
         # Riverside: Moderate/Standard profile based on Paigalan et al. (2025)
-        "w_a": 0.50, "w_sn": 0.4, "w_pbc": 0.3, "c_effort": 0.06, "decay": 0.0005
+        "w_a": 0.6, "w_sn": 0.6, "w_pbc": 0.5, "c_effort": 0.02, "decay": 0.0005
     },
     "Demologan": {
-        # Suburban Standard
-        "w_a": 0.50, "w_sn": 0.3, "w_pbc": 0.3, "c_effort": 0.05, "decay": 0.0005
+        "w_a": 0.65, "w_sn": 0.5, "w_pbc": 0.5, "c_effort": 0.03, "decay": 0.0005
     },
     "Mati": {
-        # Small Community
-        "w_a": 0.40, "w_sn": 0.6, "w_pbc": 0.2, "c_effort": 0.07, "decay": 0.0005
+        "w_a": 0.5, "w_sn": 0.7, "w_pbc": 0.4, "c_effort": 0.07, "decay": 0.0005
     },
     "Babalaya": {
         # Remote
-        "w_a": 0.35, "w_sn": 0.3, "w_pbc": 0.2, "c_effort": 0.08, "decay": 0.0008
+        "w_a": 0.5, "w_sn": 0.6, "w_pbc": 0.5, "c_effort": 0.08, "decay": 0.0006
     }
 }
 
@@ -70,7 +63,7 @@ BARANGAY_CONFIGS = [
         "name": "Brgy Poblacion", 
         "N_HOUSEHOLDS": 1530, 
         "N_OFFICIALS": 22, 
-        "initial_compliance": 0.15, # Target: ~15%
+        "initial_compliance": 0.18, # Target: ~15%
         "income_profile": "middle",
         "behavior_profile": "Poblacion"
     },
@@ -79,7 +72,7 @@ BARANGAY_CONFIGS = [
         "name": "Brgy Liangan East", 
         "N_HOUSEHOLDS": 584, 
         "N_OFFICIALS": 10, 
-        "initial_compliance": 0.35, # Target: ~30-35% (Model Brgy)
+        "initial_compliance": 0.15, # Target: ~30-35% (Model Brgy)
         "income_profile": "middle",
         "behavior_profile": "Liangan_East"
     },
@@ -88,7 +81,7 @@ BARANGAY_CONFIGS = [
         "name": "Brgy Ezperanza", 
         "N_HOUSEHOLDS": 678, 
         "N_OFFICIALS": 2, 
-        "initial_compliance": 0.05, # Target: ~5%
+        "initial_compliance": 0.15, # Target: ~5%
         "income_profile": "low",
         "behavior_profile": "Ezperanza"
     },
@@ -97,7 +90,7 @@ BARANGAY_CONFIGS = [
         "name": "Brgy Binuni", 
         "N_HOUSEHOLDS": 476, 
         "N_OFFICIALS": 2, 
-        "initial_compliance": 0.10, # Target: ~10%
+        "initial_compliance": 0.15, # Target: ~10%
         "income_profile": "middle",
         "behavior_profile": "Binuni"
     },
@@ -106,7 +99,7 @@ BARANGAY_CONFIGS = [
         "name": "Brgy Babalaya", 
         "N_HOUSEHOLDS": 169, 
         "N_OFFICIALS": 2, 
-        "initial_compliance": 0.08, 
+        "initial_compliance": 0.1, 
         "income_profile": "middle",
         "behavior_profile": "Babalaya"
     },
@@ -124,7 +117,7 @@ BARANGAY_CONFIGS = [
         "name": "Brgy Demologan", 
         "N_HOUSEHOLDS": 496, 
         "N_OFFICIALS": 2, 
-        "initial_compliance": 0.10, 
+        "initial_compliance": 0.15, 
         "income_profile": "middle",
         "behavior_profile": "Demologan"
     }
