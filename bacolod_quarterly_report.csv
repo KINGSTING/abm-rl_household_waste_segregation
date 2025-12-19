@@ -1,0 +1,15 @@
+Quarter,Tick,Barangay_ID,Barangay_Name,Total_Allocation_PHP,IEC_Percent,Enforcement_Percent,Incentives_Percent,Compliance_Rate,Active_Enforcers
+1,0,BGY_0,Brgy Poblacion,53571.43,100.00%,0.00%,0.00%,14.64%,0
+1,0,BGY_1,Brgy Liangan East,53571.43,100.00%,0.00%,0.00%,8.22%,0
+1,0,BGY_2,Brgy Ezperanza,53571.43,100.00%,0.00%,0.00%,10.91%,0
+1,0,BGY_3,Brgy Binuni,53571.43,100.00%,0.00%,0.00%,14.29%,0
+1,0,BGY_4,Brgy Babalaya,53571.43,100.00%,0.00%,0.00%,10.65%,0
+1,0,BGY_5,Brgy Mati,53571.43,100.00%,0.00%,0.00%,8.12%,0
+1,0,BGY_6,Brgy Demologan,53571.43,100.00%,0.00%,0.00%,13.10%,0
+2,90,BGY_0,Brgy Poblacion,53571.43,100.00%,0.00%,0.00%,96.93%,0
+2,90,BGY_1,Brgy Liangan East,53571.43,100.00%,0.00%,0.00%,100.00%,0
+2,90,BGY_2,Brgy Ezperanza,53571.43,100.00%,0.00%,0.00%,20.80%,0
+2,90,BGY_3,Brgy Binuni,53571.43,100.00%,0.00%,0.00%,99.58%,0
+2,90,BGY_4,Brgy Babalaya,53571.43,100.00%,0.00%,0.00%,94.08%,0
+2,90,BGY_5,Brgy Mati,53571.43,100.00%,0.00%,0.00%,0.00%,0
+2,90,BGY_6,Brgy Demologan,53571.43,100.00%,0.00%,0.00%,92.54%,0

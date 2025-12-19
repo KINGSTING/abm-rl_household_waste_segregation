@@ -12,47 +12,45 @@ INCOME_PROFILES = {
     "high":   [0.1, 0.3, 0.6]
 }
 
-# --- BEHAVIORAL PARAMETERS (RE-CALIBRATED FOR 15% BASELINE) ---
-# Logic Update:
-# We lowered 'c_effort' to the 0.05 - 0.25 range.
-# Math Check: 
-#   Top Agents (High Attitude) -> Utility ~0.75. Minus Cost (0.15) = 0.60. (>0.5 PASS)
-#   Avg Agents (Avg Attitude)  -> Utility ~0.50. Minus Cost (0.15) = 0.35. (<0.5 FAIL)
-# This mathematically guarantees ~20% Compliance.
-
-# barangay_config.py
-
-# ... (Financial constants remain same) ...
-
-# --- BEHAVIORAL PARAMETERS (STABLE BASELINE) ---
-# FIX APPLIED: 
-# 1. Decay rates reduced by 100x (0.02 -> 0.0005). 
-#    This prevents the "Crash to Zero" seen in your graphs.
-# 2. c_effort lowered significantly to allow ~15% survival rate.
+# --- BEHAVIORAL PARAMETERS (STRICTER CALIBRATION) ---
+# FIX APPLIED:
+# 1. Poblacion & Liangan East: Increased c_effort (0.28 - 0.32). 
+#    This ensures that "Education alone" isn't enough to reach 100%. 
+#    They now need Incentives or Enforcement to break the 50% barrier.
+# 2. Binuni: Increased c_effort to 0.28 to stop the jump to 69%.
 
 BEHAVIOR_PROFILES = {
     "Poblacion": {
-        "w_a": 0.65 , "w_sn": 0.4, "w_pbc": 0.5, "c_effort": 0.02, "decay": 0.0005
+        # Urban: High Attitude, but HIGH Cost (Traffic, Time, Space).
+        # Previous: 0.25 (Too easy) -> New: 0.32
+        "w_a": 0.60, "w_sn": 0.3, "w_pbc": 0.3, "c_effort": 0.32, "decay": 0.008
     },
     "Liangan_East": {
-        "w_a": 0.65, "w_sn": 0.6, "w_pbc": 0.5, "c_effort": 0.03, "decay": 0.0006
+        # Model Barangay: High Norms, but we need to curb the 100% spike.
+        # Previous: 0.15 (Way too easy) -> New: 0.25
+        "w_a": 0.65, "w_sn": 0.5, "w_pbc": 0.4, "c_effort": 0.4, "decay": 0.008
     },
     "Ezperanza": {
-        "w_a": 0.6, "w_sn": 0.5, "w_pbc": 0.6, "c_effort": 0.03, "decay": 0.0004
+        # Resistant: Very High Cost. (Your data showed 0%, which is realistic).
+        # Kept strict.
+        "w_a": 0.64, "w_sn": 0.2, "w_pbc": 0.2, "c_effort": 0.35, "decay": 0.008
     },
     "Binuni": {
-        # Riverside: Moderate/Standard profile based on Paigalan et al. (2025)
-        "w_a": 0.6, "w_sn": 0.6, "w_pbc": 0.5, "c_effort": 0.02, "decay": 0.0005
+        # Riverside: Moderate.
+        # Previous: 0.22 -> New: 0.28 (To lower the 69% spike)
+        "w_a": 0.61, "w_sn": 0.3, "w_pbc": 0.3, "c_effort": 0.28, "decay": 0.008
     },
     "Demologan": {
-        "w_a": 0.65, "w_sn": 0.5, "w_pbc": 0.5, "c_effort": 0.03, "decay": 0.0005
+        # Transition area. (Your data showed ~10%, which is good/realistic).
+        "w_a": 0.62, "w_sn": 0.3, "w_pbc": 0.3, "c_effort": 0.35, "decay": 0.008
     },
     "Mati": {
-        "w_a": 0.5, "w_sn": 0.7, "w_pbc": 0.4, "c_effort": 0.07, "decay": 0.0005
+        # Small community. (Data showed ~8%, good).
+        "w_a": 0.64, "w_sn": 0.5, "w_pbc": 0.3, "c_effort": 0.8, "decay": 0.008
     },
     "Babalaya": {
-        # Remote
-        "w_a": 0.5, "w_sn": 0.6, "w_pbc": 0.5, "c_effort": 0.08, "decay": 0.0006
+        # Remote area. (Data showed ~2%, good).
+        "w_a": 0.63, "w_sn": 0.3, "w_pbc": 0.3, "c_effort": 0.30, "decay": 0.008
     }
 }
 
@@ -63,7 +61,7 @@ BARANGAY_CONFIGS = [
         "name": "Brgy Poblacion", 
         "N_HOUSEHOLDS": 1530, 
         "N_OFFICIALS": 0, 
-        "initial_compliance": 0.18, # Target: ~15%
+        "initial_compliance": 0.15, 
         "income_profile": "middle",
         "behavior_profile": "Poblacion"
     },
@@ -72,7 +70,7 @@ BARANGAY_CONFIGS = [
         "name": "Brgy Liangan East", 
         "N_HOUSEHOLDS": 584, 
         "N_OFFICIALS": 0, 
-        "initial_compliance": 0.15, # Target: ~15%
+        "initial_compliance": 0.10,
         "income_profile": "middle",
         "behavior_profile": "Liangan_East"
     },
@@ -81,7 +79,7 @@ BARANGAY_CONFIGS = [
         "name": "Brgy Ezperanza", 
         "N_HOUSEHOLDS": 678, 
         "N_OFFICIALS": 0, 
-        "initial_compliance": 0.15, # Target: ~15%
+        "initial_compliance": 0.1,
         "income_profile": "low",
         "behavior_profile": "Ezperanza"
     },
@@ -90,7 +88,7 @@ BARANGAY_CONFIGS = [
         "name": "Brgy Binuni", 
         "N_HOUSEHOLDS": 476, 
         "N_OFFICIALS": 0, 
-        "initial_compliance": 0.15, # Target: ~15%
+        "initial_compliance": 0.15, 
         "income_profile": "middle",
         "behavior_profile": "Binuni"
     },
@@ -99,7 +97,7 @@ BARANGAY_CONFIGS = [
         "name": "Brgy Babalaya", 
         "N_HOUSEHOLDS": 169, 
         "N_OFFICIALS": 0, 
-        "initial_compliance": 0.1, 
+        "initial_compliance": 0.10, 
         "income_profile": "middle",
         "behavior_profile": "Babalaya"
     },

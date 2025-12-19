@@ -5,6 +5,7 @@ from mesa.datacollection import DataCollector
 import numpy as np
 import random
 import os
+import csv 
 from stable_baselines3 import PPO
 
 import barangay_config as config
@@ -31,6 +32,23 @@ class BacolodModel(mesa.Model):
         self.train_mode = train_mode
         self.rl_agent = None
         
+        # --- CSV Logging Setup (UPDATED WITH TICK) ---
+        self.log_filename = "bacolod_quarterly_report.csv"
+        with open(self.log_filename, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([
+                "Quarter", 
+                "Tick", # <--- ADDED COLUMN
+                "Barangay_ID", 
+                "Barangay_Name", 
+                "Total_Allocation_PHP", 
+                "IEC_Percent", 
+                "Enforcement_Percent", 
+                "Incentives_Percent",
+                "Compliance_Rate",
+                "Active_Enforcers"
+            ])
+
         # Load the Trained Brain (Only if NOT training)
         if not self.train_mode:
             model_path = "models/PPO/bacolod_ppo_final.zip"
@@ -64,7 +82,6 @@ class BacolodModel(mesa.Model):
         self.beta_recovery = 0.02        
 
         self.barangays = []
-        # We make this a class attribute to track IDs across dynamic spawning
         self.agent_id_counter = 0 
         
         # --- LOOP THROUGH CONFIGURATION ---
@@ -112,9 +129,6 @@ class BacolodModel(mesa.Model):
                 self.schedule.add(a)
                 self.grid.place_agent(a, (x, y))
 
-            # Note: We do NOT spawn static Enforcers here anymore. 
-            # They are now spawned dynamically in apply_action based on budget.
-
         # Data Collector
         reporters = {
             "Global Compliance": compute_global_compliance,
@@ -138,11 +152,6 @@ class BacolodModel(mesa.Model):
         self.political_capital = max(0.0, min(1.0, self.political_capital))
 
     def calculate_costs(self):
-        """
-        Calculates daily expenses based on the actual AI-allocated quarterly budget.
-        Funds are amortized over 90 days.
-        """
-        # Sum up funds across all barangays
         total_iec_alloc = sum(b.iec_fund for b in self.barangays)
         total_enf_alloc = sum(b.enf_fund for b in self.barangays)
         total_inc_alloc = sum(b.inc_fund for b in self.barangays)
@@ -151,60 +160,80 @@ class BacolodModel(mesa.Model):
         daily_enf_spend = total_enf_alloc / 90.0
         daily_inc_spend = total_inc_alloc / 90.0
         
-        # 3. UPDATE TOTALS (For Analysis/Charts)
         self.total_enforcement_cost += daily_enf_spend
         self.total_incentives_distributed += daily_inc_spend
         self.total_iec_cost += daily_iec_spend
         
-        # 4. DEDUCT FROM CURRENT BUDGET
         total_daily_expense = daily_iec_spend + daily_enf_spend + daily_inc_spend
         
         self.current_budget = self.current_budget - total_daily_expense + self.recent_fines_collected
         self.recent_fines_collected = 0
 
     def adjust_enforcement_agents(self, barangay):
-        """
-        Dynamically adds or removes EnforcementAgents based on the Barangay's 'enf_fund'.
-        Assumption: 1 Enforcer cost ~ P400/day * 90 days = P36,000 per quarter.
-        """
         COST_PER_ENFORCER_QUARTER = 36000.0
-        
-        # Calculate how many agents the budget can support
         target_count = int(barangay.enf_fund / COST_PER_ENFORCER_QUARTER)
         
-        # Get current agents in this specific barangay
         current_agents = [
             a for a in self.schedule.agents 
             if isinstance(a, EnforcementAgent) and a.barangay_id == barangay.unique_id
         ]
         current_count = len(current_agents)
-        
         diff = target_count - current_count
         
         if diff > 0:
-            # SPAWN new agents
             for _ in range(diff):
-                # Use a unique ID based on global counter
                 e_id = f"ENF_{self.agent_id_counter}"
                 self.agent_id_counter += 1
-                
                 new_agent = EnforcementAgent(e_id, self)
                 new_agent.barangay_id = barangay.unique_id
-                
                 self.schedule.add(new_agent)
-                # Place randomly in grid
                 x = self.random.randrange(self.grid_width)
                 y = self.random.randrange(self.grid_height)
                 self.grid.place_agent(new_agent, (x, y))
-                
         elif diff < 0:
-            # REMOVE agents (Budget cuts)
-            # Remove from the end of the list
             agents_to_remove = current_agents[:abs(diff)]
             for agent in agents_to_remove:
                 if agent.pos:
                     self.grid.remove_agent(agent)
                 self.schedule.remove(agent)
+
+    def log_quarterly_report(self, quarter):
+        """
+        Writes the breakdown of each Barangay's budget allocation to CSV.
+        Focuses on Percentages as requested.
+        """
+        with open(self.log_filename, mode='a', newline='') as file:
+            writer = csv.writer(file)
+            
+            for b in self.barangays:
+                total = b.iec_fund + b.enf_fund + b.inc_fund
+                
+                if total > 0:
+                    iec_pct = (b.iec_fund / total) * 100
+                    enf_pct = (b.enf_fund / total) * 100
+                    inc_pct = (b.inc_fund / total) * 100
+                else:
+                    iec_pct, enf_pct, inc_pct = 0.0, 0.0, 0.0
+
+                active_enforcers = len([
+                    a for a in self.schedule.agents 
+                    if isinstance(a, EnforcementAgent) and a.barangay_id == b.unique_id
+                ])
+                
+                writer.writerow([
+                    quarter,
+                    self.schedule.steps, # <--- ADDED: Current Simulation Tick
+                    b.unique_id,
+                    b.name,
+                    f"{total:.2f}",
+                    f"{iec_pct:.2f}%",
+                    f"{enf_pct:.2f}%",
+                    f"{inc_pct:.2f}%",
+                    f"{b.get_local_compliance():.2%}",
+                    active_enforcers
+                ])
+        
+        print(f" > Report for Quarter {quarter} saved to {self.log_filename}")
 
     def step(self):
         """
@@ -223,21 +252,18 @@ class BacolodModel(mesa.Model):
                 # AI Mode
                 action, _ = self.rl_agent.predict(current_state, deterministic=True)
             else:
-                # DEFAULT / MANUAL MODE (Pure IEC Policy)
-                # Distribute 375k equally across 7 barangays (~53.5k each).
-                # Split: 100% IEC, 0% Enforcer, 0% Incentives.
+                # DEFAULT / MANUAL MODE
                 print("Running Default Pure IEC Policy (375k Split)...")
-                
                 action = []
                 for _ in range(7):
-                    # [IEC, Enf, Inc] -> All money to IEC
-                    action.extend([1.0, 0.0, 0.0]) 
-                
-                # This vector is normalized by apply_action to fit the quarterly budget constraint.
+                    action.extend([1.0, 0.0, 0.0]) # 100% IEC
             
-            # C. Apply Action (This triggers budget updates and agent spawning/removal)
+            # C. Apply Action
             self.apply_action(action)
             self.print_agent_decision(action)
+            
+            # D. LOG DATA TO CSV (NEW)
+            self.log_quarterly_report(current_quarter)
 
         # 2. Agents Act
         for b in self.barangays: b.step()
@@ -256,9 +282,6 @@ class BacolodModel(mesa.Model):
     def print_agent_decision(self, action):
         """Helper to print what the AI actually decided."""
         print("LGU Agent Policy Update:")
-        
-        # Note: 'action' values here are raw from the AI/Manual. 
-        # The ACTUAL spent amount is stored in the barangay agents after apply_action scales it.
         actual_iec = sum(b.iec_fund for b in self.barangays)
         actual_enf = sum(b.enf_fund for b in self.barangays)
         actual_inc = sum(b.inc_fund for b in self.barangays)
@@ -267,7 +290,6 @@ class BacolodModel(mesa.Model):
         print(f"  Total Allocated to Enforcement: P {actual_enf:,.2f}")
         print(f"  Total Allocated to Incentives:  P {actual_inc:,.2f}")
         
-        # Count total active enforcers
         enforcers = [a for a in self.schedule.agents if isinstance(a, EnforcementAgent)]
         print(f"  Active Enforcers Deployed:      {len(enforcers)}")
         print(f"  Remaining LGU Budget:           P {self.current_budget:,.2f}")
@@ -294,20 +316,14 @@ class BacolodModel(mesa.Model):
     def apply_action(self, action_vector):
         """
         Applies the RL Agent's decision.
-        action_vector: List of 21 floats (3 levers * 7 barangays)
         """
-        # Convert action vector (fractions/ratios) into Real Pesos relative to Quarterly Budget
-        
-        # 1. Sum up the raw "desires" from the vector
         total_desire = sum(action_vector)
         
-        # 2. Scale to fit exactly into the Quarterly Budget (Use it or lose it logic)
         if total_desire > 0:
             scale_factor = self.quarterly_budget / total_desire
         else:
             scale_factor = 0
 
-        # 3. Apply to Barangays
         for i, bgy in enumerate(self.barangays):
             idx = i * 3
             
@@ -319,14 +335,10 @@ class BacolodModel(mesa.Model):
             # Update Barangay Policy
             bgy.update_policy(iec_fund, enf_fund, inc_fund)
             
-            # DYNAMIC AGENT UPDATE:
-            # Based on the new 'enf_fund', hire/fire enforcers
+            # DYNAMIC AGENT UPDATE
             self.adjust_enforcement_agents(bgy)
 
     def calculate_reward(self):
-        """
-        Calculates the Multi-Objective Reward (Thesis Eq 3.11).
-        """
         w1 = 1.0  # Priority: Compliance
         w2 = 0.5  # Priority: Budget Safety
         w3 = 0.8  # Priority: Political Stability
