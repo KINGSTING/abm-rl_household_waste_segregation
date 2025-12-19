@@ -62,7 +62,7 @@ BARANGAY_CONFIGS = [
         "id": 0,
         "name": "Brgy Poblacion", 
         "N_HOUSEHOLDS": 1530, 
-        "N_OFFICIALS": 22, 
+        "N_OFFICIALS": 0, 
         "initial_compliance": 0.18, # Target: ~15%
         "income_profile": "middle",
         "behavior_profile": "Poblacion"
@@ -71,8 +71,8 @@ BARANGAY_CONFIGS = [
         "id": 1, 
         "name": "Brgy Liangan East", 
         "N_HOUSEHOLDS": 584, 
-        "N_OFFICIALS": 10, 
-        "initial_compliance": 0.15, # Target: ~30-35% (Model Brgy)
+        "N_OFFICIALS": 0, 
+        "initial_compliance": 0.15, # Target: ~15%
         "income_profile": "middle",
         "behavior_profile": "Liangan_East"
     },
@@ -80,8 +80,8 @@ BARANGAY_CONFIGS = [
         "id": 2, 
         "name": "Brgy Ezperanza", 
         "N_HOUSEHOLDS": 678, 
-        "N_OFFICIALS": 2, 
-        "initial_compliance": 0.15, # Target: ~5%
+        "N_OFFICIALS": 0, 
+        "initial_compliance": 0.15, # Target: ~15%
         "income_profile": "low",
         "behavior_profile": "Ezperanza"
     },
@@ -89,8 +89,8 @@ BARANGAY_CONFIGS = [
         "id": 3, 
         "name": "Brgy Binuni", 
         "N_HOUSEHOLDS": 476, 
-        "N_OFFICIALS": 2, 
-        "initial_compliance": 0.15, # Target: ~10%
+        "N_OFFICIALS": 0, 
+        "initial_compliance": 0.15, # Target: ~15%
         "income_profile": "middle",
         "behavior_profile": "Binuni"
     },
@@ -98,7 +98,7 @@ BARANGAY_CONFIGS = [
         "id": 4, 
         "name": "Brgy Babalaya", 
         "N_HOUSEHOLDS": 169, 
-        "N_OFFICIALS": 2, 
+        "N_OFFICIALS": 0, 
         "initial_compliance": 0.1, 
         "income_profile": "middle",
         "behavior_profile": "Babalaya"
@@ -107,7 +107,7 @@ BARANGAY_CONFIGS = [
         "id": 5, 
         "name": "Brgy Mati", 
         "N_HOUSEHOLDS": 160, 
-        "N_OFFICIALS": 2, 
+        "N_OFFICIALS": 0, 
         "initial_compliance": 0.10, 
         "income_profile": "middle",
         "behavior_profile": "Mati"
@@ -116,7 +116,7 @@ BARANGAY_CONFIGS = [
         "id": 6, 
         "name": "Brgy Demologan", 
         "N_HOUSEHOLDS": 496, 
-        "N_OFFICIALS": 2, 
+        "N_OFFICIALS": 0, 
         "initial_compliance": 0.15, 
         "income_profile": "middle",
         "behavior_profile": "Demologan"
