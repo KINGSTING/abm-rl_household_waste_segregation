@@ -38,7 +38,7 @@ class BacolodModel(mesa.Model):
                 print(f"Loading Trained Agent from {model_path}...")
                 self.rl_agent = PPO.load(model_path)
             else:
-                print("Warning: No trained model found. Running in 'IEC Policy' Mode.")
+                print("Warning: No trained model found. Running in 'Pure IEC Policy' Mode.")
 
         # --- Financials ---
         self.annual_budget = config.ANNUAL_BUDGET
@@ -142,13 +142,6 @@ class BacolodModel(mesa.Model):
         Calculates daily expenses based on the actual AI-allocated quarterly budget.
         Funds are amortized over 90 days.
         """
-        # 1. FIXED COSTS (Base Salaries could go here, but we focus on discretionary funds)
-        # We track dynamic enforcer costs via the 'enf_fund' allocation below.
-        
-        # 2. VARIABLE COSTS (The AI's Allocation)
-        # The AI allocates a Quarterly Budget (90 days). 
-        # We amortize this daily: Daily Cost = Total Allocation / 90.
-        
         # Sum up funds across all barangays
         total_iec_alloc = sum(b.iec_fund for b in self.barangays)
         total_enf_alloc = sum(b.enf_fund for b in self.barangays)
@@ -230,27 +223,19 @@ class BacolodModel(mesa.Model):
                 # AI Mode
                 action, _ = self.rl_agent.predict(current_state, deterministic=True)
             else:
-                # DEFAULT / MANUAL MODE (Requested "IEC Policy")
+                # DEFAULT / MANUAL MODE (Pure IEC Policy)
                 # Distribute 375k equally across 7 barangays (~53.5k each).
-                # Split: 36k for Enforcer (1 agent), 17.5k for IEC/Incentives.
-                print("Running Default IEC Policy (375k Split)...")
-                
-                # Create a manual action vector of size 21 (7 barangays * 3 levers)
-                # We normalize inputs to [0, 1] relative to the total budget later in apply_action,
-                # but apply_action handles scaling. We just need ratios here.
-                # Let's try to pass rough amounts.
-                
-                # Logic: We want approx P36,000 for Enforcers (to get 1 agent) and P17,000 for IEC.
-                # Total per bgy = 53,000.
-                # Ratios: IEC=0.3, Enf=0.7, Inc=0.0
+                # Split: 100% IEC, 0% Enforcer, 0% Incentives.
+                print("Running Default Pure IEC Policy (375k Split)...")
                 
                 action = []
                 for _ in range(7):
-                    action.extend([0.3, 0.7, 0.0]) # [IEC, Enf, Inc]
+                    # [IEC, Enf, Inc] -> All money to IEC
+                    action.extend([1.0, 0.0, 0.0]) 
                 
                 # This vector is normalized by apply_action to fit the quarterly budget constraint.
             
-            # C. Apply Action (This triggers budget updates and agent spawning)
+            # C. Apply Action (This triggers budget updates and agent spawning/removal)
             self.apply_action(action)
             self.print_agent_decision(action)
 
@@ -271,9 +256,6 @@ class BacolodModel(mesa.Model):
     def print_agent_decision(self, action):
         """Helper to print what the AI actually decided."""
         print("LGU Agent Policy Update:")
-        total_iec = sum(action[0::3])
-        total_enf = sum(action[1::3])
-        total_inc = sum(action[2::3])
         
         # Note: 'action' values here are raw from the AI/Manual. 
         # The ACTUAL spent amount is stored in the barangay agents after apply_action scales it.
@@ -320,8 +302,6 @@ class BacolodModel(mesa.Model):
         total_desire = sum(action_vector)
         
         # 2. Scale to fit exactly into the Quarterly Budget (Use it or lose it logic)
-        # If total_desire is 0, we spend nothing.
-        # If total_desire > 0, we scale so that Sum(Allocations) == QUARTERLY_BUDGET
         if total_desire > 0:
             scale_factor = self.quarterly_budget / total_desire
         else:
