@@ -62,7 +62,7 @@ class BarangayAgent(mesa.Agent):
 
         # 2. CONVERSION: Money -> Intensity
         # We assume ~50,000 PHP per quarter is "Maximum Saturation" (1.0 intensity)
-        SATURATION_POINT = 50000.0
+        SATURATION_POINT = 375000.0
 
         # Calculate IEC Intensity (Boosts Attitude)
         self.iec_intensity = min(1.0, iec_fund / SATURATION_POINT)
