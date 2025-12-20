@@ -19,7 +19,15 @@ def compute_global_compliance(model):
     return sum(1 for a in agents if a.is_compliant) / len(agents)
 
 class BacolodModel(mesa.Model):
-    def __init__(self, seed=None, train_mode=False): 
+    # FIX: Added 'policy_mode' to __init__ arguments
+    def __init__(self, seed=None, train_mode=False, policy_mode="status_quo"): 
+        """
+        policy_mode options:
+          "status_quo"       -> 100% IEC (Default)
+          "pure_incentives"  -> 100% Incentives
+          "pure_enforcement" -> 100% Enforcement
+          "ppo"              -> AI / Hybrid Policy
+        """
         if seed is not None:
             super().__init__(seed=seed)
             self._seed = seed
@@ -30,15 +38,17 @@ class BacolodModel(mesa.Model):
 
         # --- Simulation Mode ---
         self.train_mode = train_mode
+        self.policy_mode = policy_mode # Store the user choice
         self.rl_agent = None
         
-        # --- CSV Logging Setup (UPDATED WITH TICK) ---
-        self.log_filename = "bacolod_quarterly_report.csv"
+        # --- CSV Logging Setup ---
+        self.log_filename = f"bacolod_report_{self.policy_mode}.csv"
+        
         with open(self.log_filename, mode='w', newline='') as file:
             writer = csv.writer(file)
             writer.writerow([
                 "Quarter", 
-                "Tick", # <--- ADDED COLUMN
+                "Tick", 
                 "Barangay_ID", 
                 "Barangay_Name", 
                 "Total_Allocation_PHP", 
@@ -49,14 +59,14 @@ class BacolodModel(mesa.Model):
                 "Active_Enforcers"
             ])
 
-        # Load the Trained Brain (Only if NOT training)
-        if not self.train_mode:
+        # Load the Trained Brain (Only if needed for PPO mode)
+        if not self.train_mode and self.policy_mode == "ppo":
             model_path = "models/PPO/bacolod_ppo_final.zip"
             if os.path.exists(model_path):
                 print(f"Loading Trained Agent from {model_path}...")
                 self.rl_agent = PPO.load(model_path)
             else:
-                print("Warning: No trained model found. Running in 'Pure IEC Policy' Mode.")
+                print("Warning: No trained model found. Fallback behavior may occur.")
 
         # --- Financials ---
         self.annual_budget = config.ANNUAL_BUDGET
@@ -200,7 +210,6 @@ class BacolodModel(mesa.Model):
     def log_quarterly_report(self, quarter):
         """
         Writes the breakdown of each Barangay's budget allocation to CSV.
-        Focuses on Percentages as requested.
         """
         with open(self.log_filename, mode='a', newline='') as file:
             writer = csv.writer(file)
@@ -222,7 +231,7 @@ class BacolodModel(mesa.Model):
                 
                 writer.writerow([
                     quarter,
-                    self.schedule.steps, # <--- ADDED: Current Simulation Tick
+                    self.schedule.steps,
                     b.unique_id,
                     b.name,
                     f"{total:.2f}",
@@ -242,27 +251,41 @@ class BacolodModel(mesa.Model):
         # 1. QUARTERLY DECISION POINT (Every 90 steps)
         if self.schedule.steps % 90 == 0:
             current_quarter = (self.schedule.steps // 90) + 1
-            print(f"\n--- Quarter {current_quarter} Decision Point ---")
+            print(f"\n--- Quarter {current_quarter} Decision Point ({self.policy_mode.upper()}) ---")
             
             # A. Get State
             current_state = self.get_state()
             
-            # B. Decide Action
-            if not self.train_mode and self.rl_agent is not None:
-                # AI Mode
+            # B. Decide Action based on Policy Mode
+            action = []
+            
+            if self.policy_mode == "ppo" and self.rl_agent is not None:
+                # #4 HYBRID: PPO Agent
                 action, _ = self.rl_agent.predict(current_state, deterministic=True)
+                
+            elif self.policy_mode == "pure_incentives":
+                # #2 POLICY: 100% Incentives
+                print("Running Policy: Pure Incentives (100% Incentives)")
+                for _ in range(7): 
+                    action.extend([0.0, 0.0, 1.0]) # [IEC, ENF, INC]
+
+            elif self.policy_mode == "pure_enforcement":
+                # #3 POLICY: 100% Enforcement
+                print("Running Policy: Pure Enforcement (100% Enforcement)")
+                for _ in range(7): 
+                    action.extend([0.0, 1.0, 0.0]) # [IEC, ENF, INC]
+            
             else:
-                # DEFAULT / MANUAL MODE
-                print("Running Default Pure IEC Policy (375k Split)...")
-                action = []
-                for _ in range(7):
-                    action.extend([1.0, 0.0, 0.0]) # 100% IEC
+                # #1 POLICY: Status Quo (Default) - 100% IEC
+                print("Running Policy: Status Quo (100% IEC)")
+                for _ in range(7): 
+                    action.extend([1.0, 0.0, 0.0]) # [IEC, ENF, INC]
             
             # C. Apply Action
             self.apply_action(action)
             self.print_agent_decision(action)
             
-            # D. LOG DATA TO CSV (NEW)
+            # D. Log Data
             self.log_quarterly_report(current_quarter)
 
         # 2. Agents Act
@@ -280,8 +303,8 @@ class BacolodModel(mesa.Model):
         if self.schedule.steps >= 1080: self.running = False
 
     def print_agent_decision(self, action):
-        """Helper to print what the AI actually decided."""
-        print("LGU Agent Policy Update:")
+        """Helper to print what the AI/Policy decided."""
+        print("LGU Policy Update:")
         actual_iec = sum(b.iec_fund for b in self.barangays)
         actual_enf = sum(b.enf_fund for b in self.barangays)
         actual_inc = sum(b.inc_fund for b in self.barangays)
@@ -315,7 +338,7 @@ class BacolodModel(mesa.Model):
     
     def apply_action(self, action_vector):
         """
-        Applies the RL Agent's decision.
+        Applies the decision.
         """
         total_desire = sum(action_vector)
         
