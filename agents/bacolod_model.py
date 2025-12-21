@@ -274,8 +274,8 @@ class BacolodModel(mesa.Model):
                 action, _ = self.rl_agent.predict(current_state, deterministic=True)
             else:
                 # --- HYBRID ALLOCATION FIX (To Prevent Poblacion Spikes) ---
-                base_share = 0.30  # 30% split evenly
-                pop_share = 0.70   # 70% split by population
+                base_share = 0 # 10% split evenly
+                pop_share = 1  # 90% split by population
                 total_hh = sum(b.n_households for b in self.barangays)
 
                 for b in self.barangays:

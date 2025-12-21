@@ -30,18 +30,34 @@ class BarangayAgent(mesa.Agent):
         self.enf_fund = enf_fund
         # FIX: The inc_fund is now a "Pot of Money" that drains over time
         self.inc_fund = inc_fund 
-        self.current_cash_on_hand = inc_fund # Track actual cash remaining
+        self.current_cash_on_hand = inc_fund 
 
-        SATURATION_POINT = 375000.0
-        self.iec_intensity = min(1.0, iec_fund / SATURATION_POINT)
-        self.enforcement_intensity = min(1.0, enf_fund / SATURATION_POINT)
+        # --- CALIBRATION FIX FOR STATUS QUO ---
+        # OLD: Fixed Cost (Unrealistic for large vs small barangays)
+        # SATURATION_POINT = 375000.0 
+        
+        # NEW: Variable Cost (Door-to-Door Logic)
+        # We estimate it costs ~P650 per household per quarter to achieve 100% IEC saturation
+        # Calculation: P93 budget/head / 0.14 target intensity ~= 664
+        IEC_COST_PER_HEAD = 650.0 
+        
+        if self.n_households > 0:
+            saturation_target = self.n_households * IEC_COST_PER_HEAD
+        else:
+            saturation_target = 375000.0 # Fallback
 
-        # FIX: Calculate the "Reward per Person" (P90)
-        # This is the "Promise" value, not the daily payment.
+        self.iec_intensity = min(1.0, iec_fund / saturation_target)
+        
+        # Enforcement still uses fixed cost (patrols cover area, not people)
+        # You can keep this fixed or scale it by area if you wish.
+        ENF_SATURATION = 375000.0
+        self.enforcement_intensity = min(1.0, enf_fund / ENF_SATURATION)
+
+        # Incentive Logic
         if self.n_households > 0:
             self.incentive_val = self.inc_fund / self.n_households
         else:
-            self.incentive_val = 0 
+            self.incentive_val = 0
 
     def get_local_compliance(self):
         """

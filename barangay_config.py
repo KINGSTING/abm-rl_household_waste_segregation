@@ -45,11 +45,11 @@ BEHAVIOR_PROFILES = {
     },
     "Mati": {
         # Small community.
-        "w_a": 0.60, "w_sn": 0.5, "w_pbc": 0.3, "c_effort": 0.3, "decay": 0.0028
+        "w_a": 0.60, "w_sn": 0.5, "w_pbc": 0.4, "c_effort": 0.33, "decay": 0.0030
     },
     "Babalaya": {
         # Remote area.
-        "w_a": 0.60, "w_sn": 0.5, "w_pbc": 0.3, "c_effort": 0.25, "decay": 0.0028
+        "w_a": 0.60, "w_sn": 0.5, "w_pbc": 0.4, "c_effort": 0.33, "decay": 0.0030
     }
 }
 
