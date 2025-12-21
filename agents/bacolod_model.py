@@ -41,8 +41,15 @@ class BacolodModel(mesa.Model):
         else:
             print(f"\n[INIT] BacolodModel created with Policy Mode: {self.policy_mode.upper()}")
         
-        # --- CSV Logging Setup ---
-        self.log_filename = f"bacolod_report_{self.policy_mode}.csv"
+        # --- CSV Logging Setup (UPDATED) ---
+        # Create a 'results' folder if it doesn't exist
+        results_dir = "results"
+        if not os.path.exists(results_dir):
+            os.makedirs(results_dir)
+
+        # Update filename to save inside the folder
+        self.log_filename = os.path.join(results_dir, f"bacolod_report_{self.policy_mode}.csv")
+        
         # Only create/wipe the CSV if we are NOT calibrating (to avoid spamming files)
         if not self.behavior_override:
             with open(self.log_filename, mode='w', newline='') as file:
@@ -235,6 +242,7 @@ class BacolodModel(mesa.Model):
         # Only log if NOT in calibration mode
         if self.behavior_override: return
 
+        # Ensure we append to the file created in __init__ (which includes the 'results/' path)
         with open(self.log_filename, mode='a', newline='') as file:
             writer = csv.writer(file)
             for b in self.barangays:
