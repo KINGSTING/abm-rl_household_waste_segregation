@@ -23,7 +23,7 @@ BEHAVIOR_PROFILES = {
     "Poblacion": {
         # Urban: High Hassle (0.35 Cost).
         # Even if they know better (IEC), traffic/time stops them.
-        "w_a": 0.65, "w_sn": 0.5, "w_pbc": 0.3, "c_effort": 0.2, "decay": 0.0028
+        "w_a": 0.65, "w_sn": 0.5, "w_pbc": 0.3, "c_effort": 0.20, "decay": 0.0028
     },
     "Liangan_East": {
         # Model Barangay: Lower Cost (0.25).

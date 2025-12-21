@@ -31,7 +31,9 @@ class HouseholdAgent(mesa.Agent):
         self.attitude = 0.85 if initial_compliance else 0.2 
         self.sn = 0.7 if initial_compliance else 0.4 
         self.pbc = 0.7 if initial_compliance else 0.4
-        self.utility = 0.0  
+        self.utility = 0.0 
+
+        self.redeemed_this_quarter = False
 
     def update_social_norms(self):
         neighbors = self.model.grid.get_neighbors(self.pos, moore=True, radius=2)
@@ -64,12 +66,24 @@ class HouseholdAgent(mesa.Agent):
         gamma = 1.5 if self.income_level == 1 else (1.0 if self.income_level == 2 else 0.8)
         
         fine = self.barangay.fine_amount if self.barangay else 0
-        incentive = self.barangay.inc_fund / 1000.0 if self.barangay else 0 
         prob_detection = self.barangay.enforcement_intensity if self.barangay else 0
+
+        # --- FIX: REDEMPTION LOGIC ---
+        # The incentive acts as a "carrot." If I have already eaten the carrot 
+        # (redeemed_this_quarter), I am no longer motivated by it until the next quarter.
+        if self.barangay and not self.redeemed_this_quarter:
+             # I haven't redeemed yet. The potential reward (e.g., P90) motivates me.
+             incentive = self.barangay.incentive_val 
+        else:
+             # I already got the money, or the bank is empty. Zero financial motivation from rewards.
+             incentive = 0.0
         
+        # Calculate Total Monetary Impact (Pesos)
+        # Positive = Net Gain, Negative = Net Loss (Expected Fine)
         monetary_impact = incentive - (fine * prob_detection)
         
         # USE DYNAMIC EFFORT COST
+        # We scale by /1000.0 to convert Pesos into "Utility Units" (0.0 - 1.0 range)
         c_net = self.c_effort_base - (gamma * monetary_impact / 1000.0) 
 
         # 2. Calculate Utility (TPB Formula with dynamic weights)
@@ -90,7 +104,29 @@ class HouseholdAgent(mesa.Agent):
             self.model.total_fines_collected += 500 
             self.model.recent_fines_collected += 500
 
+    def attempt_redemption(self):
+        """
+        If compliant, try to go to Barangay Hall to claim reward.
+        """
+        # Rules: Must be compliant, haven't redeemed yet, and Barangay exists
+        if self.is_compliant and not self.redeemed_this_quarter and self.barangay:
+            
+            # "Randomly if they comply" -> e.g., 10% chance per day they visit the hall
+            if self.random.random() < 0.10: 
+                reward_amount = self.barangay.incentive_val
+                
+                # Ask Barangay for money
+                success = self.barangay.give_reward(reward_amount)
+                
+                if success:
+                    self.redeemed_this_quarter = True
+                    # Optional: Short-term happiness boost?
+                    self.attitude += 0.05
+
     def step(self):
         self.update_attitude()
         self.update_social_norms()
         self.make_decision()
+        
+        # New Step: Try to get money
+        self.attempt_redemption()
